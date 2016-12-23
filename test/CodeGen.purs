@@ -9,8 +9,10 @@ import CoreFn.Expr (Bind(..), Expr(..), Literal(..))
 import CoreFn.Ident (Ident(..))
 import CoreFn.Module (Module(..))
 import CoreFn.Names (ModuleName(..), Qualified(..))
+import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
+import Data.Tuple (Tuple(..))
 import PureSwift.CodeGen (Swift(..), moduleToSwift)
 import Test.Assert (ASSERT, assert')
 
@@ -19,14 +21,14 @@ testCodeGen = do
   log ""
   log "Test CodeGen"
 
-  testModuleToSwift
+  testHelloWorld
+  testLiterals
 
   where
 
   test
-    :: forall a
-     . String
-    -> Module a
+    :: String
+    -> Module Unit
     -> Swift
     -> Eff (assert :: ASSERT, console :: CONSOLE | e) Unit
   test description mod swift = do
@@ -43,12 +45,13 @@ testCodeGen = do
 
     assert' message $ actual == expected
 
-  testModuleToSwift = do
+  testHelloWorld = do
     let declIdent = Ident "main"
     let declModuleName = Just (ModuleName "Control.Monad.Eff.Console")
     let declQualifier = Qualified declModuleName (Ident "log")
     let declVar = Var unit declQualifier
-    let declLiteral = Literal unit (StringLiteral "Hello world!")
+    let declLiteral = Literal unit $ StringLiteral "Hello world!"
+
     let declExpr = App unit declVar declLiteral
     let decl = NonRec unit declIdent declExpr
 
@@ -67,18 +70,79 @@ testCodeGen = do
 
     let moduleName = ModuleName "Main"
 
-    let mod = Module { moduleDecls: moduleDecls
-                     , moduleExports: moduleExports
-                     , moduleForeign: moduleForeign
-                     , moduleImports: moduleImports
-                     , moduleName: moduleName
+    let mod = Module { moduleDecls
+                     , moduleExports
+                     , moduleForeign
+                     , moduleImports
+                     , moduleName
                      }
 
-    test "moduleToSwift" mod $ Swift $ "" <>
+    test "Hello World" mod $ Swift $ "" <>
 """// Main
 
 import Prelude
 import Control_Monad_Eff
 import Control_Monad_Eff_Console
 
+public func main() -> () {
+  Control_Monad_Eff_Console.log("Hello world!")
+}
+"""
+
+  testLiterals = do
+    let intLiteral = Literal unit $ NumericLiteral (Left 42)
+    let numberLiteral = Literal unit $ NumericLiteral (Right 3.14)
+    let stringLiteral = Literal unit $ StringLiteral "Hello world!"
+    let charLiteral = Literal unit $ CharLiteral 'a'
+    let booleanLiteral = Literal unit $ BooleanLiteral true
+    let arrayLiteral = Literal unit $ ArrayLiteral [ Literal unit $ NumericLiteral (Left 1)
+                                                   , Literal unit $ NumericLiteral (Left 2)
+                                                   , Literal unit $ NumericLiteral (Left 3)
+                                                   ]
+    let objectLiteral = Literal unit $ ObjectLiteral [ Tuple "a" (Literal unit $ NumericLiteral (Left 1))
+                                                     , Tuple "b" (Literal unit $ NumericLiteral (Left 2))
+                                                     , Tuple "c" (Literal unit $ NumericLiteral (Left 3))
+                                                     ]
+
+    let moduleDecls = [ NonRec unit (Ident "int") intLiteral
+                      , NonRec unit (Ident "number") numberLiteral
+                      , NonRec unit (Ident "string") stringLiteral
+                      , NonRec unit (Ident "char") charLiteral
+                      , NonRec unit (Ident "boolean") booleanLiteral
+                      , NonRec unit (Ident "array") arrayLiteral
+                      , NonRec unit (Ident "object") objectLiteral
+                      ]
+
+    let moduleExports = [ Ident "int"
+                        , Ident "number"
+                        , Ident "string"
+                        , Ident "char"
+                        , Ident "boolean"
+                        , Ident "array"
+                        , Ident "object"
+                        ]
+
+    let moduleForeign = []
+
+    let moduleImports = [ ModuleName "Prim" ]
+
+    let moduleName = ModuleName "Literals"
+
+    let mod = Module { moduleDecls
+                     , moduleExports
+                     , moduleForeign
+                     , moduleImports
+                     , moduleName
+                     }
+
+    test "Literals" mod $ Swift $ "" <>
+"""// Literals
+
+public let int = 42
+public let number = 3.14
+public let string = "Hello world!"
+public let char = 'a'
+public let boolean = true
+public let array = [ 1, 2, 3 ]
+public let object = { a: 1, b: 2, c: 3 }
 """
