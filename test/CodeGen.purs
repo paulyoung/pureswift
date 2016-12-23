@@ -77,4 +77,8 @@ testCodeGen = do
     test "moduleToSwift" mod $ Swift $ "" <>
 """// Main
 
+import Prelude
+import Control_Monad_Eff
+import Control_Monad_Eff_Console
+
 """
