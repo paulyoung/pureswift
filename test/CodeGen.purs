@@ -141,7 +141,7 @@ public func main() -> () {
 public let int = 42
 public let number = 3.14
 public let string = "Hello world!"
-public let char = 'a'
+public let char = "a"
 public let boolean = true
 public let array = [ 1, 2, 3 ]
 public let object = { a: 1, b: 2, c: 3 }

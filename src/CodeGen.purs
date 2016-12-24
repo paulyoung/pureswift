@@ -13,7 +13,7 @@ import Data.Either (either)
 import Data.Foldable (elem, intercalate)
 import Data.Maybe (Maybe, maybe)
 import Data.Newtype (class Newtype, unwrap, wrap)
-import Data.String (Pattern(..), Replacement(..), replaceAll)
+import Data.String (Pattern(..), Replacement(..), replaceAll, singleton)
 import Data.Tuple (Tuple(..))
 
 newtype Swift = Swift String
@@ -71,7 +71,7 @@ moduleToSwift (Module { moduleDecls, moduleExports, moduleForeign, moduleImports
   printLiteral :: Literal (Expr Unit) -> String
   printLiteral (NumericLiteral x) = either show show x
   printLiteral (StringLiteral x) = show x
-  printLiteral (CharLiteral x) = show x
+  printLiteral (CharLiteral x) = (show <<< singleton) x
   printLiteral (BooleanLiteral x) = show x
   printLiteral (ArrayLiteral x) = "[" <>
     (if null x then "" else " " <> intercalate ", " (printExpr <$> x) <> " ") <>
