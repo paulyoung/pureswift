@@ -21,6 +21,7 @@ testCodeGen = do
   log ""
   log "Test CodeGen"
 
+  testExports
   testHelloWorld
   testLiterals
 
@@ -44,6 +45,36 @@ testCodeGen = do
       expected <> "\n"
 
     assert' message $ actual == expected
+
+  testExports = do
+    let exported = Literal unit $ StringLiteral "exported"
+    let notExported = Literal unit $ StringLiteral "not exported"
+
+    let moduleDecls = [ NonRec unit (Ident "exported") exported
+                      , NonRec unit (Ident "notExported") notExported
+                      ]
+
+    let moduleExports = [ Ident "exported" ]
+
+    let moduleForeign = []
+
+    let moduleImports = [ ModuleName "Prim" ]
+
+    let moduleName = ModuleName "Exports"
+
+    let mod = Module { moduleDecls
+                     , moduleExports
+                     , moduleForeign
+                     , moduleImports
+                     , moduleName
+                     }
+
+    test "Exports" mod $ Swift $ "" <>
+"""// Exports
+
+public let exported = "exported"
+let notExported = "not exported"
+"""
 
   testHelloWorld = do
     let declIdent = Ident "main"
