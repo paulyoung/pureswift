@@ -11,6 +11,7 @@
     "purescript-corefn": "paulyoung/purescript-corefn#8ba73bd"
   },
   "devDependencies": {
-    "purescript-psci-support": "^2.0.0"
+    "purescript-psci-support": "^2.0.0",
+    "purescript-assert": "^2.0.0"
   }
 }
