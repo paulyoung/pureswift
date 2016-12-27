@@ -134,13 +134,25 @@ public func main() -> () {
     let stringLiteral = Literal unit $ StringLiteral "Hello world!"
     let charLiteral = Literal unit $ CharLiteral 'a'
     let booleanLiteral = Literal unit $ BooleanLiteral true
+
     let arrayLiteral = Literal unit $ ArrayLiteral [ Literal unit $ NumericLiteral (Left 1)
                                                    , Literal unit $ NumericLiteral (Left 2)
                                                    , Literal unit $ NumericLiteral (Left 3)
                                                    ]
+
+    let emptyArrayLiteral = Literal unit $ ArrayLiteral []
+
+    let singleItemArrayLiteral = Literal unit $ ArrayLiteral [ Literal unit $ NumericLiteral (Left 1)
+                                                             ]
+
     let objectLiteral = Literal unit $ ObjectLiteral [ Tuple "a" (Literal unit $ NumericLiteral (Left 1))
                                                      , Tuple "b" (Literal unit $ NumericLiteral (Left 2))
                                                      , Tuple "c" (Literal unit $ NumericLiteral (Left 3))
+                                                     ]
+
+    let emptyObjectLiteral = Literal unit $ ObjectLiteral []
+
+    let singleItemObjectLiteral = Literal unit $ ObjectLiteral [ Tuple "a" (Literal unit $ NumericLiteral (Left 1))
                                                      ]
 
     let builtWith = "0.10.1"
@@ -151,17 +163,14 @@ public func main() -> () {
                       , NonRec unit (Ident "char") charLiteral
                       , NonRec unit (Ident "boolean") booleanLiteral
                       , NonRec unit (Ident "array") arrayLiteral
+                      , NonRec unit (Ident "emptyArray") emptyArrayLiteral
+                      , NonRec unit (Ident "singleItemArray") singleItemArrayLiteral
                       , NonRec unit (Ident "object") objectLiteral
+                      , NonRec unit (Ident "emptyObject") emptyObjectLiteral
+                      , NonRec unit (Ident "singleItemObject") singleItemObjectLiteral
                       ]
 
-    let moduleExports = [ Ident "int"
-                        , Ident "number"
-                        , Ident "string"
-                        , Ident "char"
-                        , Ident "boolean"
-                        , Ident "array"
-                        , Ident "object"
-                        ]
+    let moduleExports = []
 
     let moduleForeign = []
 
@@ -181,11 +190,15 @@ public func main() -> () {
 """// Literals
 // Built with PureScript 0.10.1
 
-public let int = 42
-public let number = 3.14
-public let string = "Hello world!"
-public let char = "a"
-public let boolean = true
-public let array = [ 1, 2, 3 ]
-public let object = { a: 1, b: 2, c: 3 }
+let int = 42
+let number = 3.14
+let string = "Hello world!"
+let char = "a"
+let boolean = true
+let array = [ 1, 2, 3 ]
+let emptyArray = []
+let singleItemArray = [ 1 ]
+let object = { a: 1, b: 2, c: 3 }
+let emptyObject = {}
+let singleItemObject = { a: 1 }
 """
