@@ -8,7 +8,7 @@
   ],
   "dependencies": {
     "purescript-console": "^2.0.0",
-    "purescript-corefn": "paulyoung/purescript-corefn#8ba73bd"
+    "purescript-corefn": "paulyoung/purescript-corefn#7e8de80"
   },
   "devDependencies": {
     "purescript-psci-support": "^2.0.0",

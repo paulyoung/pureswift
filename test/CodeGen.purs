@@ -50,6 +50,8 @@ testCodeGen = do
     let exported = Literal unit $ StringLiteral "exported"
     let notExported = Literal unit $ StringLiteral "not exported"
 
+    let builtWith = "0.10.1"
+
     let moduleDecls = [ NonRec unit (Ident "exported") exported
                       , NonRec unit (Ident "notExported") notExported
                       ]
@@ -62,7 +64,8 @@ testCodeGen = do
 
     let moduleName = ModuleName "Exports"
 
-    let mod = Module { moduleDecls
+    let mod = Module { builtWith
+                     , moduleDecls
                      , moduleExports
                      , moduleForeign
                      , moduleImports
@@ -71,6 +74,7 @@ testCodeGen = do
 
     test "Exports" mod $ Swift $ "" <>
 """// Exports
+// Built with PureScript 0.10.1
 
 public let exported = "exported"
 let notExported = "not exported"
@@ -85,6 +89,8 @@ let notExported = "not exported"
 
     let declExpr = App unit declVar declLiteral
     let decl = NonRec unit declIdent declExpr
+
+    let builtWith = "0.10.1"
 
     let moduleDecls = [ decl ]
 
@@ -101,7 +107,8 @@ let notExported = "not exported"
 
     let moduleName = ModuleName "Main"
 
-    let mod = Module { moduleDecls
+    let mod = Module { builtWith
+                     , moduleDecls
                      , moduleExports
                      , moduleForeign
                      , moduleImports
@@ -110,6 +117,7 @@ let notExported = "not exported"
 
     test "Hello World" mod $ Swift $ "" <>
 """// Main
+// Built with PureScript 0.10.1
 
 import Prelude
 import Control_Monad_Eff
@@ -135,6 +143,8 @@ public func main() -> () {
                                                      , Tuple "c" (Literal unit $ NumericLiteral (Left 3))
                                                      ]
 
+    let builtWith = "0.10.1"
+
     let moduleDecls = [ NonRec unit (Ident "int") intLiteral
                       , NonRec unit (Ident "number") numberLiteral
                       , NonRec unit (Ident "string") stringLiteral
@@ -159,7 +169,8 @@ public func main() -> () {
 
     let moduleName = ModuleName "Literals"
 
-    let mod = Module { moduleDecls
+    let mod = Module { builtWith
+                     , moduleDecls
                      , moduleExports
                      , moduleForeign
                      , moduleImports
@@ -168,6 +179,7 @@ public func main() -> () {
 
     test "Literals" mod $ Swift $ "" <>
 """// Literals
+// Built with PureScript 0.10.1
 
 public let int = 42
 public let number = 3.14
