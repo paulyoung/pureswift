@@ -21,15 +21,22 @@ newtype Swift = Swift String
 derive instance newtypeSwift :: Newtype Swift _
 
 moduleToSwift :: Module Unit -> Swift
-moduleToSwift (Module { moduleDecls, moduleExports, moduleForeign, moduleImports, moduleName }) = do
+moduleToSwift (Module { builtWith
+                      , moduleDecls
+                      , moduleExports
+                      , moduleForeign
+                      , moduleImports
+                      , moduleName
+                      }) = do
+
   let name = unwrap moduleName
   let imports = printImportStatement <$> filterImports moduleImports
 
   let decls = printBind <$> moduleDecls
 
   let swift = "" <>
-    "// " <> name <>
-    "\n" <>
+    "// " <> name <> "\n" <>
+    "// Built with PureScript " <> builtWith <> "\n" <>
     (if null imports then "" else intercalate "" imports) <>
     (if null decls then "" else intercalate "" decls) <>
     "\n"
