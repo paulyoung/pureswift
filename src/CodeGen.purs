@@ -78,14 +78,14 @@ moduleToSwift (Module { builtWith
   printLiteral :: Literal (Expr Unit) -> String
   printLiteral (NumericLiteral x) = either show show x
   printLiteral (StringLiteral x) = show x
-  printLiteral (CharLiteral x) = (show <<< singleton) x
+  printLiteral (CharLiteral x) = "(" <> (show <<< singleton) x <> " as Character)"
   printLiteral (BooleanLiteral x) = show x
-  printLiteral (ArrayLiteral x) = "[" <>
+  printLiteral (ArrayLiteral x) = "([" <>
     (if null x then "" else " " <> intercalate ", " (printExpr <$> x) <> " ") <>
-  "]"
-  printLiteral (ObjectLiteral x) = "[" <>
+  "] as [Any])"
+  printLiteral (ObjectLiteral x) = "([" <>
     (if null x then ":" else " " <> intercalate ", " (printObjectLiteralPair <$> x) <> " ") <>
-  "]"
+  "] as [String: Any])"
 
   printModuleName :: ModuleName -> String
   printModuleName = unwrap <<< renameImport

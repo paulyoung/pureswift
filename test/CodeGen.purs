@@ -136,8 +136,8 @@ public func main() -> () {
     let booleanLiteral = Literal unit $ BooleanLiteral true
 
     let arrayLiteral = Literal unit $ ArrayLiteral [ Literal unit $ NumericLiteral (Left 1)
-                                                   , Literal unit $ NumericLiteral (Left 2)
-                                                   , Literal unit $ NumericLiteral (Left 3)
+                                                   , Literal unit $ StringLiteral "Hello world!"
+                                                   , Literal unit $ BooleanLiteral true
                                                    ]
 
     let emptyArrayLiteral = Literal unit $ ArrayLiteral []
@@ -146,8 +146,8 @@ public func main() -> () {
                                                              ]
 
     let objectLiteral = Literal unit $ ObjectLiteral [ Tuple "a" (Literal unit $ NumericLiteral (Left 1))
-                                                     , Tuple "b" (Literal unit $ NumericLiteral (Left 2))
-                                                     , Tuple "c" (Literal unit $ NumericLiteral (Left 3))
+                                                     , Tuple "b" (Literal unit $ StringLiteral "Hello world!")
+                                                     , Tuple "c" (Literal unit $ BooleanLiteral true)
                                                      ]
 
     let emptyObjectLiteral = Literal unit $ ObjectLiteral []
@@ -193,12 +193,12 @@ public func main() -> () {
 let int = 42
 let number = 3.14
 let string = "Hello world!"
-let char = "a"
+let char = ("a" as Character)
 let boolean = true
-let array = [ 1, 2, 3 ]
-let emptyArray = []
-let singleItemArray = [ 1 ]
-let object = [ "a": 1, "b": 2, "c": 3 ]
-let emptyObject = [:]
-let singleItemObject = [ "a": 1 ]
+let array = ([ 1, "Hello world!", true ] as [Any])
+let emptyArray = ([] as [Any])
+let singleItemArray = ([ 1 ] as [Any])
+let object = ([ "a": 1, "b": "Hello world!", "c": true ] as [String: Any])
+let emptyObject = ([:] as [String: Any])
+let singleItemObject = ([ "a": 1 ] as [String: Any])
 """
