@@ -83,15 +83,15 @@ moduleToSwift (Module { builtWith
   printLiteral (ArrayLiteral x) = "[" <>
     (if null x then "" else " " <> intercalate ", " (printExpr <$> x) <> " ") <>
   "]"
-  printLiteral (ObjectLiteral x) = "{" <>
+  printLiteral (ObjectLiteral x) = "[" <>
     (if null x then "" else " " <> intercalate ", " (printObjectLiteralPair <$> x) <> " ") <>
-  "}"
+  "]"
 
   printModuleName :: ModuleName -> String
   printModuleName = unwrap <<< renameImport
 
   printObjectLiteralPair :: Tuple String (Expr Unit) -> String
-  printObjectLiteralPair (Tuple x y) = x <> ": " <> printExpr y
+  printObjectLiteralPair (Tuple x y) = "\"" <> x <> "\"" <> ": " <> printExpr y
 
   printQualifiedIdent :: Qualified Ident -> String
   printQualifiedIdent (Qualified q i) = printQualifier q <> printIdent i
