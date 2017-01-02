@@ -84,7 +84,7 @@ moduleToSwift (Module { builtWith
     (if null x then "" else " " <> intercalate ", " (printExpr <$> x) <> " ") <>
   "]"
   printLiteral (ObjectLiteral x) = "[" <>
-    (if null x then "" else " " <> intercalate ", " (printObjectLiteralPair <$> x) <> " ") <>
+    (if null x then ":" else " " <> intercalate ", " (printObjectLiteralPair <$> x) <> " ") <>
   "]"
 
   printModuleName :: ModuleName -> String
