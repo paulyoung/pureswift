@@ -199,6 +199,6 @@ let array = [ 1, 2, 3 ]
 let emptyArray = []
 let singleItemArray = [ 1 ]
 let object = [ "a": 1, "b": 2, "c": 3 ]
-let emptyObject = []
+let emptyObject = [:]
 let singleItemObject = [ "a": 1 ]
 """
