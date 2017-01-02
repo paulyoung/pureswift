@@ -76,8 +76,8 @@ testCodeGen = do
 """// Exports
 // Built with PureScript 0.10.1
 
-public let exported = "exported"
-let notExported = "not exported"
+public let exported: String = "exported"
+let notExported: String = "not exported"
 """
 
   testHelloWorld = do
@@ -190,15 +190,15 @@ public func main() -> () {
 """// Literals
 // Built with PureScript 0.10.1
 
-let int = 42
-let number = 3.14
-let string = "Hello world!"
-let char = ("a" as Character)
-let boolean = true
-let array = ([ 1, "Hello world!", true ] as [Any])
-let emptyArray = ([] as [Any])
-let singleItemArray = ([ 1 ] as [Any])
-let object = ([ "a": 1, "b": "Hello world!", "c": true ] as [String: Any])
-let emptyObject = ([:] as [String: Any])
-let singleItemObject = ([ "a": 1 ] as [String: Any])
+let int: Int = 42
+let number: Double = 3.14
+let string: String = "Hello world!"
+let char: Character = "a"
+let boolean: Bool = true
+let array: [Any] = [ 1, "Hello world!", true ]
+let emptyArray: [Any] = []
+let singleItemArray: [Any] = [ 1 ]
+let object: [String: Any] = [ "a": 1, "b": "Hello world!", "c": true ]
+let emptyObject: [String: Any] = [:]
+let singleItemObject: [String: Any] = [ "a": 1 ]
 """
