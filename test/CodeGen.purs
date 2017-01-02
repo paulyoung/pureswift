@@ -76,8 +76,8 @@ testCodeGen = do
 """// Exports
 // Built with PureScript 0.10.1
 
-public let exported = "exported"
-let notExported = "not exported"
+public let exported: String = "exported"
+let notExported: String = "not exported"
 """
 
   testHelloWorld = do
@@ -136,8 +136,8 @@ public func main() -> () {
     let booleanLiteral = Literal unit $ BooleanLiteral true
 
     let arrayLiteral = Literal unit $ ArrayLiteral [ Literal unit $ NumericLiteral (Left 1)
-                                                   , Literal unit $ NumericLiteral (Left 2)
-                                                   , Literal unit $ NumericLiteral (Left 3)
+                                                   , Literal unit $ StringLiteral "Hello world!"
+                                                   , Literal unit $ BooleanLiteral true
                                                    ]
 
     let emptyArrayLiteral = Literal unit $ ArrayLiteral []
@@ -146,8 +146,8 @@ public func main() -> () {
                                                              ]
 
     let objectLiteral = Literal unit $ ObjectLiteral [ Tuple "a" (Literal unit $ NumericLiteral (Left 1))
-                                                     , Tuple "b" (Literal unit $ NumericLiteral (Left 2))
-                                                     , Tuple "c" (Literal unit $ NumericLiteral (Left 3))
+                                                     , Tuple "b" (Literal unit $ StringLiteral "Hello world!")
+                                                     , Tuple "c" (Literal unit $ BooleanLiteral true)
                                                      ]
 
     let emptyObjectLiteral = Literal unit $ ObjectLiteral []
@@ -190,15 +190,15 @@ public func main() -> () {
 """// Literals
 // Built with PureScript 0.10.1
 
-let int = 42
-let number = 3.14
-let string = "Hello world!"
-let char = "a"
-let boolean = true
-let array = [ 1, 2, 3 ]
-let emptyArray = []
-let singleItemArray = [ 1 ]
-let object = [ "a": 1, "b": 2, "c": 3 ]
-let emptyObject = [:]
-let singleItemObject = [ "a": 1 ]
+let int: Int = 42
+let number: Double = 3.14
+let string: String = "Hello world!"
+let char: Character = "a"
+let boolean: Bool = true
+let array: [Any] = [ 1, "Hello world!", true ]
+let emptyArray: [Any] = []
+let singleItemArray: [Any] = [ 1 ]
+let object: [String: Any] = [ "a": 1, "b": "Hello world!", "c": true ]
+let emptyObject: [String: Any] = [:]
+let singleItemObject: [String: Any] = [ "a": 1 ]
 """

@@ -55,11 +55,14 @@ moduleToSwift (Module { builtWith
   printBind (NonRec _ ident@(Ident name) expr) = do
     let accessControl = if isExported ident then "public " else ""
     case expr of
+      (Literal _ x) -> "\n" <> accessControl <>
+        "let " <> name <> ": " <> printLiteralType x <> " = " <> printExpr expr
       (App _ _ _) -> "\n\n" <> accessControl <>
         "func " <> name <> "() -> () {" <> "\n" <>
         "  " <> printExpr expr <> "\n" <>
         "}"
-      _ -> "\n" <> accessControl <> "let " <> name <> " = " <> printExpr expr
+      (Var _ _) -> "\n" <> accessControl <>
+        "let " <> name <> " = " <> printExpr expr
   printBind (NonRec _ i _) = printIdent i -- GenIdent
   printBind (Rec _) = "/* Mutually recursive bindings not yet supported */"
 
@@ -86,6 +89,14 @@ moduleToSwift (Module { builtWith
   printLiteral (ObjectLiteral x) = "[" <>
     (if null x then ":" else " " <> intercalate ", " (printObjectLiteralPair <$> x) <> " ") <>
   "]"
+
+  printLiteralType :: Literal (Expr Unit) -> String
+  printLiteralType (NumericLiteral x) = either (const "Int") (const "Double") x
+  printLiteralType (StringLiteral _) = "String"
+  printLiteralType (CharLiteral _) = "Character"
+  printLiteralType (BooleanLiteral _) = "Bool"
+  printLiteralType (ArrayLiteral _) = "[Any]"
+  printLiteralType (ObjectLiteral _) = "[String: Any]"
 
   printModuleName :: ModuleName -> String
   printModuleName = unwrap <<< renameImport
