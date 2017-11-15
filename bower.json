@@ -7,11 +7,12 @@
     "output"
   ],
   "dependencies": {
-    "purescript-console": "^2.0.0",
-    "purescript-corefn": "paulyoung/purescript-corefn#7e8de80"
+    "purescript-prelude": "^3.1.0",
+    "purescript-console": "^3.0.0",
+    "purescript-corefn": "paulyoung/purescript-corefn#646c996"
   },
   "devDependencies": {
-    "purescript-psci-support": "^2.0.0",
-    "purescript-assert": "^2.0.0"
+    "purescript-psci-support": "^3.0.0",
+    "purescript-assert": "^3.0.0"
   }
 }

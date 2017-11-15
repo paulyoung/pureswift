@@ -4,13 +4,14 @@ module PureSwift.CodeGen
  ) where
 
 import Prelude
+
 import CoreFn.Expr (Bind(..), Expr(..), Literal(..))
 import CoreFn.Ident (Ident(..))
 import CoreFn.Module (Module(..))
 import CoreFn.Names (ModuleName(..), Qualified(..))
-import Data.Array (filter, null)
+import Data.Array (filter, intercalate, null)
 import Data.Either (either)
-import Data.Foldable (elem, intercalate)
+import Data.Foldable (elem)
 import Data.Maybe (Maybe, maybe)
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.String (Pattern(..), Replacement(..), replaceAll, singleton)
@@ -37,9 +38,9 @@ moduleToSwift (Module { builtWith
   let swift = "" <>
     "// " <> name <> "\n" <>
     "// Built with PureScript " <> builtWith <> "\n" <>
-    (if null imports then "" else intercalate "" imports) <>
-    (if null decls then "" else intercalate "" decls) <>
-    "\n"
+    (if null imports then "" else "\n" <> (intercalate "\n" imports) <> "\n") <>
+    (if null decls then "" else "\n" <> (intercalate "\n" decls) <> "\n") <>
+    ""
 
   Swift swift
 
@@ -52,23 +53,29 @@ moduleToSwift (Module { builtWith
   isExported ident = elem ident moduleExports
 
   printBind :: Bind Unit -> String
-  printBind (NonRec _ ident@(Ident name) expr) = do
-    let accessControl = if isExported ident then "public " else ""
-    case expr of
-      (Literal _ x) -> "\n" <> accessControl <>
-        "let " <> name <> ": " <> printLiteralType x <> " = " <> printExpr expr
-      (App _ _ _) -> "\n\n" <> accessControl <>
-        "func " <> name <> "() -> () {" <> "\n" <>
-        "  " <> printExpr expr <> "\n" <>
-        "}"
-      (Var _ _) -> "\n" <> accessControl <>
-        "let " <> name <> " = " <> printExpr expr
-  printBind (NonRec _ i _) = printIdent i -- GenIdent
-  printBind (Rec _) = "/* Mutually recursive bindings not yet supported */"
+  printBind (Bind bindings) = intercalate "\n\n" (map printBind' bindings)
+    where
+    printBind' :: Tuple (Tuple Unit Ident) (Expr Unit) -> String
+    printBind' (Tuple (Tuple unit ident) expr) =
+      let
+        accessControl = if isExported ident then "public " else ""
+        name = printIdent ident
+      in
+        case expr of
+          (Literal _ x) -> accessControl <>
+            "let " <> name <> ": " <> printLiteralType x <> " = " <> printExpr expr
+          (App _ _ _) -> accessControl <>
+            "let " <> name <> " = " <> printExpr expr
+          (Abs _ _ _) -> accessControl <>
+            "let " <> name <> " = " <> printExpr expr
+          (Var _ _) -> accessControl <>
+            "let " <> name <> " = " <> printExpr expr
 
   printExpr :: Expr Unit -> String
   printExpr (Literal _ x) = printLiteral x
   printExpr (App _ x y) = printExpr x <> "(" <> printExpr y <> ")"
+  printExpr (Abs _ i1 e@(Abs _ i2 _)) = "{ (_ " <> printIdent i1 <> ": (_ " <> printIdent i2 <> ": @escaping (Any) -> Any) in\n    return " <> printExpr e <> "\n}"
+  printExpr (Abs _ i e) = "{ (_ " <> printIdent i <> ": Any) -> Any in\n    return " <> printExpr e <> "\n}"
   printExpr (Var _ x) = printQualifiedIdent x
 
   printIdent :: Ident -> String
@@ -76,7 +83,7 @@ moduleToSwift (Module { builtWith
   printIdent (GenIdent _ _) = "/* Generated identifiers not yet supported */"
 
   printImportStatement :: ModuleName -> String
-  printImportStatement name = "\n" <> "import " <> printModuleName name
+  printImportStatement name = "import " <> printModuleName name
 
   printLiteral :: Literal (Expr Unit) -> String
   printLiteral (NumericLiteral x) = either show show x

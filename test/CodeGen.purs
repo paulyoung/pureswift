@@ -24,6 +24,7 @@ testCodeGen = do
   testExports
   testHelloWorld
   testLiterals
+  testMutuallyRecursiveBindings
 
   where
 
@@ -52,8 +53,8 @@ testCodeGen = do
 
     let builtWith = "0.10.1"
 
-    let moduleDecls = [ NonRec unit (Ident "exported") exported
-                      , NonRec unit (Ident "notExported") notExported
+    let moduleDecls = [ Bind [(Tuple (Tuple unit (Ident "exported")) exported)]
+                      , Bind [(Tuple (Tuple unit (Ident "notExported")) notExported)]
                       ]
 
     let moduleExports = [ Ident "exported" ]
@@ -88,7 +89,7 @@ let notExported: String = "not exported"
     let declLiteral = Literal unit $ StringLiteral "Hello world!"
 
     let declExpr = App unit declVar declLiteral
-    let decl = NonRec unit declIdent declExpr
+    let decl = Bind [(Tuple (Tuple unit declIdent) declExpr)]
 
     let builtWith = "0.10.1"
 
@@ -123,9 +124,7 @@ import Prelude
 import Control_Monad_Eff
 import Control_Monad_Eff_Console
 
-public func main() -> () {
-  Control_Monad_Eff_Console.log("Hello world!")
-}
+public let main = Control_Monad_Eff_Console.log("Hello world!")
 """
 
   testLiterals = do
@@ -157,17 +156,17 @@ public func main() -> () {
 
     let builtWith = "0.10.1"
 
-    let moduleDecls = [ NonRec unit (Ident "int") intLiteral
-                      , NonRec unit (Ident "number") numberLiteral
-                      , NonRec unit (Ident "string") stringLiteral
-                      , NonRec unit (Ident "char") charLiteral
-                      , NonRec unit (Ident "boolean") booleanLiteral
-                      , NonRec unit (Ident "array") arrayLiteral
-                      , NonRec unit (Ident "emptyArray") emptyArrayLiteral
-                      , NonRec unit (Ident "singleItemArray") singleItemArrayLiteral
-                      , NonRec unit (Ident "object") objectLiteral
-                      , NonRec unit (Ident "emptyObject") emptyObjectLiteral
-                      , NonRec unit (Ident "singleItemObject") singleItemObjectLiteral
+    let moduleDecls = [ Bind [(Tuple (Tuple unit (Ident "int")) intLiteral)]
+                      , Bind [(Tuple (Tuple unit (Ident "number")) numberLiteral)]
+                      , Bind [(Tuple (Tuple unit (Ident "string")) stringLiteral)]
+                      , Bind [(Tuple (Tuple unit (Ident "char")) charLiteral)]
+                      , Bind [(Tuple (Tuple unit (Ident "boolean")) booleanLiteral)]
+                      , Bind [(Tuple (Tuple unit (Ident "array")) arrayLiteral)]
+                      , Bind [(Tuple (Tuple unit (Ident "emptyArray")) emptyArrayLiteral)]
+                      , Bind [(Tuple (Tuple unit (Ident "singleItemArray")) singleItemArrayLiteral)]
+                      , Bind [(Tuple (Tuple unit (Ident "object")) objectLiteral)]
+                      , Bind [(Tuple (Tuple unit (Ident "emptyObject")) emptyObjectLiteral)]
+                      , Bind [(Tuple (Tuple unit (Ident "singleItemObject")) singleItemObjectLiteral)]
                       ]
 
     let moduleExports = []
@@ -201,4 +200,57 @@ let singleItemArray: [Any] = [ 1 ]
 let object: [String: Any] = [ "a": 1, "b": "Hello world!", "c": true ]
 let emptyObject: [String: Any] = [:]
 let singleItemObject: [String: Any] = [ "a": 1 ]
+"""
+
+  testMutuallyRecursiveBindings = do
+    let fIdent = Ident "f"
+    let fModuleName = Just (ModuleName "Example")
+    let fQualified = Qualified fModuleName (Ident "g")
+    let fAppVar1 = Var unit fQualified
+    let fAppVar2 = Var unit (Qualified Nothing (Ident "x"))
+    let fApp = App unit fAppVar1 fAppVar2
+    let fAbs = Abs unit (Ident "x") fApp
+    let fBinding = Tuple (Tuple unit fIdent) fAbs
+
+    let gIdent = Ident "g"
+    let gModuleName = Just (ModuleName "Example")
+    let gQualified = Qualified gModuleName (Ident "f")
+    let gAppVar1 = Var unit gQualified
+    let gAppVar2 = Var unit (Qualified Nothing (Ident "x"))
+    let gApp = App unit gAppVar1 gAppVar2
+    let gAbs = Abs unit (Ident "x") gApp
+    let gBinding = Tuple (Tuple unit gIdent) gAbs
+
+    let builtWith = "0.10.1"
+
+    let moduleDecls = [ Bind [fBinding, gBinding]
+                      ]
+
+    let moduleExports = []
+
+    let moduleForeign = []
+
+    let moduleImports = [ ModuleName "Prim" ]
+
+    let moduleName = ModuleName "Example"
+
+    let mod = Module { builtWith
+                     , moduleDecls
+                     , moduleExports
+                     , moduleForeign
+                     , moduleImports
+                     , moduleName
+                     }
+
+    test "Mutually recursive bindings" mod $ Swift $ "" <>
+"""// Example
+// Built with PureScript 0.10.1
+
+let f = { (_ x: Any) -> Any in
+    return Example.g(x)
+}
+
+let g = { (_ x: Any) -> Any in
+    return Example.f(x)
+}
 """
