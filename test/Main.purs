@@ -2,11 +2,10 @@ module Test.Main where
 
 import Prelude
 import Control.Monad.Eff (Eff)
-import Control.Monad.Eff.Console (CONSOLE, log)
-import Test.Assert (ASSERT)
-import Test.PureSwift.CodeGen (testCodeGen)
+import Node.FS (FS)
+import Test.Spec.Discovery (discover)
+import Test.Spec.Reporter.Console (consoleReporter)
+import Test.Spec.Runner (RunnerEffects, run)
 
-main :: forall e. Eff (assert :: ASSERT, console :: CONSOLE | e) Unit
-main = do
-  testCodeGen
-  log ""
+main :: Eff (RunnerEffects (fs :: FS)) Unit
+main = discover "Test\\.PureSwift\\.*" >>= run [consoleReporter]

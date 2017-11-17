@@ -1,123 +1,94 @@
-module Test.PureSwift.CodeGen
-  ( testCodeGen
-  ) where
+module Test.PureSwift.CodeGen where
 
 import Prelude
-import Control.Monad.Eff (Eff)
-import Control.Monad.Eff.Console (CONSOLE, log)
+
 import CoreFn.Expr (Bind(..), Expr(..), Literal(..))
 import CoreFn.Ident (Ident(..))
 import CoreFn.Module (Module(..))
-import CoreFn.Names (ModuleName(..), Qualified(..))
+import CoreFn.Names (ModuleName(ModuleName), Qualified(..))
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
-import Data.Newtype (unwrap)
 import Data.Tuple (Tuple(..))
 import PureSwift.CodeGen (Swift(..), moduleToSwift)
-import Test.Assert (ASSERT, assert')
+import Test.Spec (Spec, describe, it)
+import Test.Spec.Assertions (shouldEqual)
 
-testCodeGen :: forall e. Eff (assert :: ASSERT, console :: CONSOLE | e) Unit
-testCodeGen = do
-  log ""
-  log "Test CodeGen"
+spec :: forall r. Spec r Unit
+spec = describe "CodeGen" do
+  it "Exports" do
+    let
+      exported = Literal unit $ StringLiteral "exported"
+      notExported = Literal unit $ StringLiteral "not exported"
 
-  testExports
-  testHelloWorld
-  testLiterals
-  testMutuallyRecursiveBindings
+      builtWith = "0.10.1"
 
-  where
+      moduleDecls =
+        [ Bind [(Tuple (Tuple unit (Ident "exported")) exported)]
+        , Bind [(Tuple (Tuple unit (Ident "notExported")) notExported)]
+        ]
 
-  test
-    :: String
-    -> Module Unit
-    -> Swift
-    -> Eff (assert :: ASSERT, console :: CONSOLE | e) Unit
-  test description mod swift = do
-    log $ "  " <> description
-    let actual = unwrap (moduleToSwift mod)
-    let expected = unwrap swift
+      moduleExports = [ Ident "exported" ]
 
-    let message = "\n" <>
-      "\n" <>
-      "  Actual:" <> "\n" <>
-      actual <> "\n" <>
-      "  Expected:" <> "\n" <>
-      expected <> "\n"
+      moduleForeign = []
 
-    assert' message $ actual == expected
+      moduleImports = [ ModuleName "Prim" ]
 
-  testExports = do
-    let exported = Literal unit $ StringLiteral "exported"
-    let notExported = Literal unit $ StringLiteral "not exported"
+      moduleName = ModuleName "Exports"
 
-    let builtWith = "0.10.1"
+      mod = Module
+        { builtWith
+        , moduleDecls
+        , moduleExports
+        , moduleForeign
+        , moduleImports
+        , moduleName
+        }
 
-    let moduleDecls = [ Bind [(Tuple (Tuple unit (Ident "exported")) exported)]
-                      , Bind [(Tuple (Tuple unit (Ident "notExported")) notExported)]
-                      ]
-
-    let moduleExports = [ Ident "exported" ]
-
-    let moduleForeign = []
-
-    let moduleImports = [ ModuleName "Prim" ]
-
-    let moduleName = ModuleName "Exports"
-
-    let mod = Module { builtWith
-                     , moduleDecls
-                     , moduleExports
-                     , moduleForeign
-                     , moduleImports
-                     , moduleName
-                     }
-
-    test "Exports" mod $ Swift $ "" <>
-"""// Exports
+    moduleToSwift mod `shouldEqual` Swift """// Exports
 // Built with PureScript 0.10.1
 
 public let exported: String = "exported"
 let notExported: String = "not exported"
 """
 
-  testHelloWorld = do
-    let declIdent = Ident "main"
-    let declModuleName = Just (ModuleName "Control.Monad.Eff.Console")
-    let declQualifier = Qualified declModuleName (Ident "log")
-    let declVar = Var unit declQualifier
-    let declLiteral = Literal unit $ StringLiteral "Hello world!"
+  it "Hello World" do
+    let
+      declIdent = Ident "main"
+      declModuleName = Just (ModuleName "Control.Monad.Eff.Console")
+      declQualifier = Qualified declModuleName (Ident "log")
+      declVar = Var unit declQualifier
+      declLiteral = Literal unit $ StringLiteral "Hello world!"
 
-    let declExpr = App unit declVar declLiteral
-    let decl = Bind [(Tuple (Tuple unit declIdent) declExpr)]
+      declExpr = App unit declVar declLiteral
+      decl = Bind [(Tuple (Tuple unit declIdent) declExpr)]
 
-    let builtWith = "0.10.1"
+      builtWith = "0.10.1"
 
-    let moduleDecls = [ decl ]
+      moduleDecls = [ decl ]
 
-    let moduleExports = [ Ident "main"
-                        ]
+      moduleExports = [ Ident "main" ]
 
-    let moduleForeign = []
+      moduleForeign = []
 
-    let moduleImports = [ ModuleName "Prim"
-                        , ModuleName "Prelude"
-                        , ModuleName "Control.Monad.Eff"
-                        , ModuleName "Control.Monad.Eff.Console"
-                        ]
+      moduleImports =
+        [ ModuleName "Prim"
+        , ModuleName "Prelude"
+        , ModuleName "Control.Monad.Eff"
+        , ModuleName "Control.Monad.Eff.Console"
+        ]
 
-    let moduleName = ModuleName "Main"
+      moduleName = ModuleName "Main"
 
-    let mod = Module { builtWith
-                     , moduleDecls
-                     , moduleExports
-                     , moduleForeign
-                     , moduleImports
-                     , moduleName
-                     }
+      mod = Module
+        { builtWith
+        , moduleDecls
+        , moduleExports
+        , moduleForeign
+        , moduleImports
+        , moduleName
+        }
 
-    test "Hello World" mod $ Swift $ "" <>
-"""// Main
+    moduleToSwift mod `shouldEqual` Swift """// Main
 // Built with PureScript 0.10.1
 
 import Prelude
@@ -127,66 +98,72 @@ import Control_Monad_Eff_Console
 public let main = Control_Monad_Eff_Console.log("Hello world!")
 """
 
-  testLiterals = do
-    let intLiteral = Literal unit $ NumericLiteral (Left 42)
-    let numberLiteral = Literal unit $ NumericLiteral (Right 3.14)
-    let stringLiteral = Literal unit $ StringLiteral "Hello world!"
-    let charLiteral = Literal unit $ CharLiteral 'a'
-    let booleanLiteral = Literal unit $ BooleanLiteral true
+  it "Literals" do
+    let
+      intLiteral = Literal unit $ NumericLiteral (Left 42)
+      numberLiteral = Literal unit $ NumericLiteral (Right 3.14)
+      stringLiteral = Literal unit $ StringLiteral "Hello world!"
+      charLiteral = Literal unit $ CharLiteral 'a'
+      booleanLiteral = Literal unit $ BooleanLiteral true
 
-    let arrayLiteral = Literal unit $ ArrayLiteral [ Literal unit $ NumericLiteral (Left 1)
-                                                   , Literal unit $ StringLiteral "Hello world!"
-                                                   , Literal unit $ BooleanLiteral true
-                                                   ]
+      arrayLiteral = Literal unit $ ArrayLiteral
+        [ Literal unit $ NumericLiteral (Left 1)
+        , Literal unit $ StringLiteral "Hello world!"
+        , Literal unit $ BooleanLiteral true
+        ]
 
-    let emptyArrayLiteral = Literal unit $ ArrayLiteral []
+      emptyArrayLiteral = Literal unit $ ArrayLiteral []
 
-    let singleItemArrayLiteral = Literal unit $ ArrayLiteral [ Literal unit $ NumericLiteral (Left 1)
-                                                             ]
+      singleItemArrayLiteral = Literal unit $ ArrayLiteral
+        [ Literal unit $ NumericLiteral (Left 1)
+        ]
 
-    let objectLiteral = Literal unit $ ObjectLiteral [ Tuple "a" (Literal unit $ NumericLiteral (Left 1))
-                                                     , Tuple "b" (Literal unit $ StringLiteral "Hello world!")
-                                                     , Tuple "c" (Literal unit $ BooleanLiteral true)
-                                                     ]
+      objectLiteral = Literal unit $ ObjectLiteral
+        [ Tuple "a" (Literal unit $ NumericLiteral (Left 1))
+        , Tuple "b" (Literal unit $ StringLiteral "Hello world!")
+        , Tuple "c" (Literal unit $ BooleanLiteral true)
+        ]
 
-    let emptyObjectLiteral = Literal unit $ ObjectLiteral []
+      emptyObjectLiteral = Literal unit $ ObjectLiteral []
 
-    let singleItemObjectLiteral = Literal unit $ ObjectLiteral [ Tuple "a" (Literal unit $ NumericLiteral (Left 1))
-                                                     ]
+      singleItemObjectLiteral = Literal unit $ ObjectLiteral
+        [ Tuple "a" (Literal unit $ NumericLiteral (Left 1))
+        ]
 
-    let builtWith = "0.10.1"
+      builtWith = "0.10.1"
 
-    let moduleDecls = [ Bind [(Tuple (Tuple unit (Ident "int")) intLiteral)]
-                      , Bind [(Tuple (Tuple unit (Ident "number")) numberLiteral)]
-                      , Bind [(Tuple (Tuple unit (Ident "string")) stringLiteral)]
-                      , Bind [(Tuple (Tuple unit (Ident "char")) charLiteral)]
-                      , Bind [(Tuple (Tuple unit (Ident "boolean")) booleanLiteral)]
-                      , Bind [(Tuple (Tuple unit (Ident "array")) arrayLiteral)]
-                      , Bind [(Tuple (Tuple unit (Ident "emptyArray")) emptyArrayLiteral)]
-                      , Bind [(Tuple (Tuple unit (Ident "singleItemArray")) singleItemArrayLiteral)]
-                      , Bind [(Tuple (Tuple unit (Ident "object")) objectLiteral)]
-                      , Bind [(Tuple (Tuple unit (Ident "emptyObject")) emptyObjectLiteral)]
-                      , Bind [(Tuple (Tuple unit (Ident "singleItemObject")) singleItemObjectLiteral)]
-                      ]
+      moduleDecls =
+        [ Bind [(Tuple (Tuple unit (Ident "int")) intLiteral)]
+        , Bind [(Tuple (Tuple unit (Ident "number")) numberLiteral)]
+        , Bind [(Tuple (Tuple unit (Ident "string")) stringLiteral)]
+        , Bind [(Tuple (Tuple unit (Ident "char")) charLiteral)]
+        , Bind [(Tuple (Tuple unit (Ident "boolean")) booleanLiteral)]
+        , Bind [(Tuple (Tuple unit (Ident "array")) arrayLiteral)]
+        , Bind [(Tuple (Tuple unit (Ident "emptyArray")) emptyArrayLiteral)]
+        , Bind [(Tuple (Tuple unit (Ident "singleItemArray")) singleItemArrayLiteral)]
+        , Bind [(Tuple (Tuple unit (Ident "object")) objectLiteral)]
+        , Bind [(Tuple (Tuple unit (Ident "emptyObject")) emptyObjectLiteral)]
+        , Bind [(Tuple (Tuple unit (Ident "singleItemObject")) singleItemObjectLiteral)]
+        ]
 
-    let moduleExports = []
+      moduleExports = []
 
-    let moduleForeign = []
+      moduleForeign = []
 
-    let moduleImports = [ ModuleName "Prim" ]
+      moduleImports = [ ModuleName "Prim" ]
 
-    let moduleName = ModuleName "Literals"
+      moduleName = ModuleName "Literals"
 
-    let mod = Module { builtWith
-                     , moduleDecls
-                     , moduleExports
-                     , moduleForeign
-                     , moduleImports
-                     , moduleName
-                     }
+      mod = Module
+        { builtWith
+        , moduleDecls
+        , moduleExports
+        , moduleForeign
+        , moduleImports
+        , moduleName
+        }
 
-    test "Literals" mod $ Swift $ "" <>
-"""// Literals
+    moduleToSwift mod `shouldEqual` Swift """// Literals
 // Built with PureScript 0.10.1
 
 let int: Int = 42
@@ -202,39 +179,40 @@ let emptyObject: [String: Any] = [:]
 let singleItemObject: [String: Any] = [ "a": 1 ]
 """
 
-  testMutuallyRecursiveBindings = do
-    let fIdent = Ident "f"
-    let fModuleName = Just (ModuleName "Example")
-    let fQualified = Qualified fModuleName (Ident "g")
-    let fAppVar1 = Var unit fQualified
-    let fAppVar2 = Var unit (Qualified Nothing (Ident "x"))
-    let fApp = App unit fAppVar1 fAppVar2
-    let fAbs = Abs unit (Ident "x") fApp
-    let fBinding = Tuple (Tuple unit fIdent) fAbs
+  it "Mutually recursive bindings" do
+    let
+      fIdent = Ident "f"
+      fModuleName = Just (ModuleName "Example")
+      fQualified = Qualified fModuleName (Ident "g")
+      fAppVar1 = Var unit fQualified
+      fAppVar2 = Var unit (Qualified Nothing (Ident "x"))
+      fApp = App unit fAppVar1 fAppVar2
+      fAbs = Abs unit (Ident "x") fApp
+      fBinding = Tuple (Tuple unit fIdent) fAbs
 
-    let gIdent = Ident "g"
-    let gModuleName = Just (ModuleName "Example")
-    let gQualified = Qualified gModuleName (Ident "f")
-    let gAppVar1 = Var unit gQualified
-    let gAppVar2 = Var unit (Qualified Nothing (Ident "x"))
-    let gApp = App unit gAppVar1 gAppVar2
-    let gAbs = Abs unit (Ident "x") gApp
-    let gBinding = Tuple (Tuple unit gIdent) gAbs
+      gIdent = Ident "g"
+      gModuleName = Just (ModuleName "Example")
+      gQualified = Qualified gModuleName (Ident "f")
+      gAppVar1 = Var unit gQualified
+      gAppVar2 = Var unit (Qualified Nothing (Ident "x"))
+      gApp = App unit gAppVar1 gAppVar2
+      gAbs = Abs unit (Ident "x") gApp
+      gBinding = Tuple (Tuple unit gIdent) gAbs
 
-    let builtWith = "0.10.1"
+      builtWith = "0.10.1"
 
-    let moduleDecls = [ Bind [fBinding, gBinding]
+      moduleDecls = [ Bind [fBinding, gBinding]
                       ]
 
-    let moduleExports = []
+      moduleExports = []
 
-    let moduleForeign = []
+      moduleForeign = []
 
-    let moduleImports = [ ModuleName "Prim" ]
+      moduleImports = [ ModuleName "Prim" ]
 
-    let moduleName = ModuleName "Example"
+      moduleName = ModuleName "Example"
 
-    let mod = Module { builtWith
+      mod = Module { builtWith
                      , moduleDecls
                      , moduleExports
                      , moduleForeign
@@ -242,8 +220,7 @@ let singleItemObject: [String: Any] = [ "a": 1 ]
                      , moduleName
                      }
 
-    test "Mutually recursive bindings" mod $ Swift $ "" <>
-"""// Example
+    moduleToSwift mod `shouldEqual` Swift """// Example
 // Built with PureScript 0.10.1
 
 let f = { (_ x: Any) -> Any in

@@ -20,6 +20,8 @@ import Data.Tuple (Tuple(..))
 newtype Swift = Swift String
 
 derive instance newtypeSwift :: Newtype Swift _
+derive newtype instance eqSwift :: Eq Swift
+derive newtype instance showSwift :: Show Swift
 
 moduleToSwift :: Module Unit -> Swift
 moduleToSwift (Module { builtWith
