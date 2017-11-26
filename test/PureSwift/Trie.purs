@@ -5,8 +5,8 @@ import Prelude
 import Control.Comonad.Cofree ((:<))
 import Data.Map as M
 import Data.Tuple (Tuple(..))
-import PureSwift.Trie (Trie(..), fromPath, fromPaths)
-import PureSwift.Trie as T
+import PureSwift.Trie (Path(..), Trie(..), fromPath, fromPaths)
+import PureSwift.Trie as Trie
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 
@@ -16,37 +16,37 @@ spec = describe "Trie" do
     it "empty" do
       let
         trie :: Trie
-        trie = T.empty
+        trie = Trie.empty
 
         actual :: String
         actual = show trie
 
         expected :: String
-        expected = "Trie ([] :< (fromFoldable []))"
+        expected = "Trie (Path [] :< (fromFoldable []))"
 
       actual `shouldEqual` expected
 
     it "non-empty" do
       let
         trie :: Trie
-        trie = Trie $ [] :< M.fromFoldable
-          [ Tuple "Control" $ [ "Control" ] :< M.empty
+        trie = Trie $ Path [] :< M.fromFoldable
+          [ Tuple "Control" $ Path [ "Control" ] :< M.empty
           ]
 
         actual :: String
         actual = show trie
 
         expected :: String
-        expected = "Trie ([] :< (fromFoldable [(Tuple \"Control\" ([\"Control\"] :< (fromFoldable [])))]))"
+        expected = "Trie (Path [] :< (fromFoldable [(Tuple \"Control\" (Path [\"Control\"] :< (fromFoldable [])))]))"
 
       actual `shouldEqual` expected
 
     it "nested" do
       let
         trie :: Trie
-        trie = Trie $ [] :< M.fromFoldable
-          [ Tuple "Control" $ [ "Control" ] :< M.fromFoldable
-            [ Tuple "Monad" $ [ "Control", "Monad" ] :< M.empty
+        trie = Trie $ Path [] :< M.fromFoldable
+          [ Tuple "Control" $ Path [ "Control" ] :< M.fromFoldable
+            [ Tuple "Monad" $ Path [ "Control", "Monad" ] :< M.empty
             ]
           ]
 
@@ -54,7 +54,7 @@ spec = describe "Trie" do
         actual = show trie
 
         expected :: String
-        expected = "Trie ([] :< (fromFoldable [(Tuple \"Control\" ([\"Control\"] :< (fromFoldable [(Tuple \"Monad\" ([\"Control\", \"Monad\"] :< (fromFoldable [])))])))]))"
+        expected = "Trie (Path [] :< (fromFoldable [(Tuple \"Control\" (Path [\"Control\"] :< (fromFoldable [(Tuple \"Monad\" (Path [\"Control\", \"Monad\"] :< (fromFoldable [])))])))]))"
 
       actual `shouldEqual` expected
 
@@ -62,15 +62,15 @@ spec = describe "Trie" do
     it "empty and non-empty" do
       let
         t1 :: Trie
-        t1 = T.empty
+        t1 = Trie.empty
 
         t2 :: Trie
-        t2 = Trie $ [] :< M.fromFoldable
-          [ Tuple "Data" $ [ "Data" ] :< M.empty
+        t2 = Trie $ Path [] :< M.fromFoldable
+          [ Tuple "Data" $ Path [ "Data" ] :< M.empty
           ]
 
         actual :: Trie
-        actual = T.union t1 t2
+        actual = Trie.union t1 t2
 
         expected :: Trie
         expected = t2
@@ -80,15 +80,15 @@ spec = describe "Trie" do
     it "non-empty and empty" do
       let
         t1 :: Trie
-        t1 = Trie $ [] :< M.fromFoldable
-          [ Tuple "Data" $ [ "Data" ] :< M.empty
+        t1 = Trie $ Path [] :< M.fromFoldable
+          [ Tuple "Data" $ Path [ "Data" ] :< M.empty
           ]
 
         t2 :: Trie
-        t2 = T.empty
+        t2 = Trie.empty
 
         actual :: Trie
-        actual = T.union t1 t2
+        actual = Trie.union t1 t2
 
         expected :: Trie
         expected = t1
@@ -98,29 +98,29 @@ spec = describe "Trie" do
     it "nested and nested" do
       let
         t1 :: Trie
-        t1 = Trie $ [] :< M.fromFoldable
-          [ Tuple "Control" $ [ "Control" ] :< M.fromFoldable
-            [ Tuple "Monad" $ [ "Control", "Monad" ] :< M.empty
+        t1 = Trie $ Path [] :< M.fromFoldable
+          [ Tuple "Control" $ Path [ "Control" ] :< M.fromFoldable
+            [ Tuple "Monad" $ Path [ "Control", "Monad" ] :< M.empty
             ]
           ]
 
         t2 :: Trie
-        t2 = Trie $ [] :< M.fromFoldable
-          [ Tuple "Data" $ [ "Data" ] :< M.fromFoldable
-            [ Tuple "Bounded" $ [ "Data", "Bounded" ] :< M.empty
+        t2 = Trie $ Path [] :< M.fromFoldable
+          [ Tuple "Data" $ Path [ "Data" ] :< M.fromFoldable
+            [ Tuple "Bounded" $ Path [ "Data", "Bounded" ] :< M.empty
             ]
           ]
 
         actual :: Trie
-        actual = T.union t1 t2
+        actual = Trie.union t1 t2
 
         expected :: Trie
-        expected = Trie $ [] :< M.fromFoldable
-          [ Tuple "Control" $ [ "Control" ] :< M.fromFoldable
-            [ Tuple "Monad" $ [ "Control", "Monad" ] :< M.empty
+        expected = Trie $ Path [] :< M.fromFoldable
+          [ Tuple "Control" $ Path [ "Control" ] :< M.fromFoldable
+            [ Tuple "Monad" $ Path [ "Control", "Monad" ] :< M.empty
             ]
-          , Tuple "Data" $ [ "Data" ] :< M.fromFoldable
-            [ Tuple "Bounded" $ [ "Data", "Bounded" ] :< M.empty
+          , Tuple "Data" $ Path [ "Data" ] :< M.fromFoldable
+            [ Tuple "Bounded" $ Path [ "Data", "Bounded" ] :< M.empty
             ]
           ]
 
@@ -130,36 +130,36 @@ spec = describe "Trie" do
     it "3 tries" do
       let
         t1 :: Trie
-        t1 = Trie $ [] :< M.fromFoldable
-          [ Tuple "Control" $ [ "Control" ] :< M.fromFoldable
-            [ Tuple "Monad" $ [ "Control", "Monad" ] :< M.empty
+        t1 = Trie $ Path [] :< M.fromFoldable
+          [ Tuple "Control" $ Path [ "Control" ] :< M.fromFoldable
+            [ Tuple "Monad" $ Path [ "Control", "Monad" ] :< M.empty
             ]
           ]
 
         t2 :: Trie
-        t2 = Trie $ [] :< M.fromFoldable
-          [ Tuple "Data" $ [ "Data" ] :< M.fromFoldable
-            [ Tuple "Bounded" $ [ "Data", "Bounded" ] :< M.empty
+        t2 = Trie $ Path [] :< M.fromFoldable
+          [ Tuple "Data" $ Path [ "Data" ] :< M.fromFoldable
+            [ Tuple "Bounded" $ Path [ "Data", "Bounded" ] :< M.empty
             ]
           ]
 
         t3 :: Trie
-        t3 = Trie $ [] :< M.fromFoldable
-          [ Tuple "Prelude" $ [ "Prelude" ] :< M.empty
+        t3 = Trie $ Path [] :< M.fromFoldable
+          [ Tuple "Prelude" $ Path [ "Prelude" ] :< M.empty
           ]
 
         actual :: Trie
-        actual = T.unions [t1, t2, t3]
+        actual = Trie.unions [t1, t2, t3]
 
         expected :: Trie
-        expected = Trie $ [] :< M.fromFoldable
-          [ Tuple "Control" $ [ "Control" ] :< M.fromFoldable
-            [ Tuple "Monad" $ [ "Control", "Monad" ] :< M.empty
+        expected = Trie $ Path [] :< M.fromFoldable
+          [ Tuple "Control" $ Path [ "Control" ] :< M.fromFoldable
+            [ Tuple "Monad" $ Path [ "Control", "Monad" ] :< M.empty
             ]
-          , Tuple "Data" $ [ "Data" ] :< M.fromFoldable
-            [ Tuple "Bounded" $ [ "Data", "Bounded" ] :< M.empty
+          , Tuple "Data" $ Path [ "Data" ] :< M.fromFoldable
+            [ Tuple "Bounded" $ Path [ "Data", "Bounded" ] :< M.empty
             ]
-          , Tuple "Prelude" $ [ "Prelude" ] :< M.empty
+          , Tuple "Prelude" $ Path [ "Prelude" ] :< M.empty
           ]
 
       actual `shouldEqual` expected
@@ -168,11 +168,11 @@ spec = describe "Trie" do
     it "1 level" do
       let
         actual :: Trie
-        actual = fromPath [ "Control" ]
+        actual = fromPath $ Path [ "Control" ]
 
         expected :: Trie
-        expected = Trie $ [] :< M.fromFoldable
-          [ Tuple "Control" $ [ "Control" ] :< M.empty
+        expected = Trie $ Path [] :< M.fromFoldable
+          [ Tuple "Control" $ Path [ "Control" ] :< M.empty
           ]
 
       actual `shouldEqual` expected
@@ -180,12 +180,12 @@ spec = describe "Trie" do
     it "2 levels" do
       let
         actual :: Trie
-        actual = fromPath [ "Control", "Monad" ]
+        actual = fromPath $ Path [ "Control", "Monad" ]
 
         expected :: Trie
-        expected = Trie $ [] :< M.fromFoldable
-          [ Tuple "Control" $ [ "Control" ] :< M.fromFoldable
-            [ Tuple "Monad" $ [ "Control", "Monad" ] :< M.empty
+        expected = Trie $ Path [] :< M.fromFoldable
+          [ Tuple "Control" $ Path [ "Control" ] :< M.fromFoldable
+            [ Tuple "Monad" $ Path [ "Control", "Monad" ] :< M.empty
             ]
           ]
 
@@ -194,13 +194,13 @@ spec = describe "Trie" do
     it "3 levels" do
       let
         actual :: Trie
-        actual = fromPath [ "Control", "Monad", "Eff" ]
+        actual = fromPath $ Path [ "Control", "Monad", "Eff" ]
 
         expected :: Trie
-        expected = Trie $ [] :< M.fromFoldable
-          [ Tuple "Control" $ [ "Control" ] :< M.fromFoldable
-            [ Tuple "Monad" $ [ "Control", "Monad" ] :< M.fromFoldable
-              [ Tuple "Eff" $ [ "Control", "Monad", "Eff" ] :< M.empty
+        expected = Trie $ Path [] :< M.fromFoldable
+          [ Tuple "Control" $ Path [ "Control" ] :< M.fromFoldable
+            [ Tuple "Monad" $ Path [ "Control", "Monad" ] :< M.fromFoldable
+              [ Tuple "Eff" $ Path [ "Control", "Monad", "Eff" ] :< M.empty
               ]
             ]
           ]
@@ -210,14 +210,14 @@ spec = describe "Trie" do
     it "4 levels" do
       let
         actual :: Trie
-        actual = fromPath [ "Control", "Monad", "Eff", "Console" ]
+        actual = fromPath $ Path [ "Control", "Monad", "Eff", "Console" ]
 
         expected :: Trie
-        expected = Trie $ [] :< M.fromFoldable
-          [ Tuple "Control" $ [ "Control" ] :< M.fromFoldable
-            [ Tuple "Monad" $ [ "Control", "Monad" ] :< M.fromFoldable
-              [ Tuple "Eff" $ [ "Control", "Monad", "Eff" ] :< M.fromFoldable
-                [ Tuple "Console" $ [ "Control", "Monad", "Eff", "Console" ] :< M.empty
+        expected = Trie $ Path [] :< M.fromFoldable
+          [ Tuple "Control" $ Path [ "Control" ] :< M.fromFoldable
+            [ Tuple "Monad" $ Path [ "Control", "Monad" ] :< M.fromFoldable
+              [ Tuple "Eff" $ Path [ "Control", "Monad", "Eff" ] :< M.fromFoldable
+                [ Tuple "Console" $ Path [ "Control", "Monad", "Eff", "Console" ] :< M.empty
                 ]
               ]
             ]
@@ -230,15 +230,15 @@ spec = describe "Trie" do
       let
         actual :: Trie
         actual = fromPaths
-          [ [ "Control", "Monad", "Eff", "Console" ]
+          [ Path [ "Control", "Monad", "Eff", "Console" ]
           ]
 
         expected :: Trie
-        expected = Trie $ [] :< M.fromFoldable
-          [ Tuple "Control" $ [ "Control" ] :< M.fromFoldable
-            [ Tuple "Monad" $ [ "Control", "Monad" ] :< M.fromFoldable
-              [ Tuple "Eff" $ [ "Control", "Monad", "Eff" ] :< M.fromFoldable
-                [ Tuple "Console" $ [ "Control", "Monad", "Eff", "Console" ] :< M.empty
+        expected = Trie $ Path [] :< M.fromFoldable
+          [ Tuple "Control" $ Path [ "Control" ] :< M.fromFoldable
+            [ Tuple "Monad" $ Path [ "Control", "Monad" ] :< M.fromFoldable
+              [ Tuple "Eff" $ Path [ "Control", "Monad", "Eff" ] :< M.fromFoldable
+                [ Tuple "Console" $ Path [ "Control", "Monad", "Eff", "Console" ] :< M.empty
                 ]
               ]
             ]
@@ -250,17 +250,17 @@ spec = describe "Trie" do
       let
         actual :: Trie
         actual = fromPaths
-          [ [ "Control", "Apply" ]
-          , [ "Data", "Bounded" ]
+          [ Path [ "Control", "Apply" ]
+          , Path [ "Data", "Bounded" ]
           ]
 
         expected :: Trie
-        expected = Trie $ [] :< M.fromFoldable
-          [ Tuple "Control" $ ["Control"] :< M.fromFoldable
-            [ Tuple "Apply" $ ["Control", "Apply"] :< M.empty
+        expected = Trie $ Path [] :< M.fromFoldable
+          [ Tuple "Control" $ Path ["Control"] :< M.fromFoldable
+            [ Tuple "Apply" $ Path ["Control", "Apply"] :< M.empty
             ]
-          , Tuple "Data" $ ["Data"] :< M.fromFoldable
-            [ Tuple "Bounded" $ ["Data", "Bounded"] :< M.empty
+          , Tuple "Data" $ Path ["Data"] :< M.fromFoldable
+            [ Tuple "Bounded" $ Path ["Data", "Bounded"] :< M.empty
             ]
           ]
 
@@ -270,15 +270,15 @@ spec = describe "Trie" do
       let
         actual :: Trie
         actual = fromPaths
-          [ [ "Control", "Apply" ]
-          , [ "Control", "Bind" ]
+          [ Path [ "Control", "Apply" ]
+          , Path [ "Control", "Bind" ]
           ]
 
         expected :: Trie
-        expected = Trie $ [] :< M.fromFoldable
-          [ Tuple "Control" $ [ "Control" ] :< M.fromFoldable
-            [ Tuple "Apply" $ [ "Control", "Apply" ] :< M.empty
-            , Tuple "Bind"  $ [ "Control", "Bind" ]  :< M.empty
+        expected = Trie $ Path [] :< M.fromFoldable
+          [ Tuple "Control" $ Path [ "Control" ] :< M.fromFoldable
+            [ Tuple "Apply" $ Path [ "Control", "Apply" ] :< M.empty
+            , Tuple "Bind"  $ Path [ "Control", "Bind" ]  :< M.empty
             ]
           ]
 
@@ -288,21 +288,21 @@ spec = describe "Trie" do
       let
         actual :: Trie
         actual = fromPaths
-          [ [ "Control", "Apply" ]
-          , [ "Control", "Bind" ]
-          , [ "Data", "Bounded" ]
-          , [ "Data", "Eq" ]
+          [ Path [ "Control", "Apply" ]
+          , Path [ "Control", "Bind" ]
+          , Path [ "Data", "Bounded" ]
+          , Path [ "Data", "Eq" ]
           ]
 
         expected :: Trie
-        expected = Trie $ [] :< M.fromFoldable
-          [ Tuple "Control" $ ["Control"] :< M.fromFoldable
-            [ Tuple "Apply" $ ["Control", "Apply"] :< M.empty
-            , Tuple "Bind"  $ ["Control", "Bind"]  :< M.empty
+        expected = Trie $ Path [] :< M.fromFoldable
+          [ Tuple "Control" $ Path ["Control"] :< M.fromFoldable
+            [ Tuple "Apply" $ Path ["Control", "Apply"] :< M.empty
+            , Tuple "Bind"  $ Path ["Control", "Bind"]  :< M.empty
             ]
-          , Tuple "Data" $ ["Data"] :< M.fromFoldable
-            [ Tuple "Bounded" $ ["Data", "Bounded"] :< M.empty
-            , Tuple "Eq"      $ ["Data", "Eq"]      :< M.empty
+          , Tuple "Data" $ Path ["Data"] :< M.fromFoldable
+            [ Tuple "Bounded" $ Path ["Data", "Bounded"] :< M.empty
+            , Tuple "Eq"      $ Path ["Data", "Eq"]      :< M.empty
             ]
           ]
 
@@ -312,29 +312,29 @@ spec = describe "Trie" do
       let
         actual :: Trie
         actual = fromPaths
-          [ [ "Control", "Apply" ]
-          , [ "Control", "Bind" ]
-          , [ "Control", "Monad", "Eff", "Console" ]
-          , [ "Control", "Monad", "Eff", "Unsafe" ]
-          , [ "Data", "Bounded" ]
-          , [ "Data", "Eq" ]
+          [ Path [ "Control", "Apply" ]
+          , Path [ "Control", "Bind" ]
+          , Path [ "Control", "Monad", "Eff", "Console" ]
+          , Path [ "Control", "Monad", "Eff", "Unsafe" ]
+          , Path [ "Data", "Bounded" ]
+          , Path [ "Data", "Eq" ]
           ]
 
         expected :: Trie
-        expected = Trie $ [] :< M.fromFoldable
-          [ Tuple "Control" $ ["Control"] :< M.fromFoldable
-            [ Tuple "Apply" $ ["Control", "Apply"] :< M.empty
-            , Tuple "Bind"  $ ["Control", "Bind"]  :< M.empty
-            , Tuple "Monad" $ ["Control", "Monad"] :< M.fromFoldable
-              [ Tuple "Eff" $ ["Control", "Monad", "Eff"] :< M.fromFoldable
-                [ Tuple "Console" $ ["Control", "Monad", "Eff", "Console"] :< M.empty
-                , Tuple "Unsafe"  $ ["Control", "Monad", "Eff", "Unsafe"]  :< M.empty
+        expected = Trie $ Path [] :< M.fromFoldable
+          [ Tuple "Control" $ Path ["Control"] :< M.fromFoldable
+            [ Tuple "Apply" $ Path ["Control", "Apply"] :< M.empty
+            , Tuple "Bind"  $ Path ["Control", "Bind"]  :< M.empty
+            , Tuple "Monad" $ Path ["Control", "Monad"] :< M.fromFoldable
+              [ Tuple "Eff" $ Path ["Control", "Monad", "Eff"] :< M.fromFoldable
+                [ Tuple "Console" $ Path ["Control", "Monad", "Eff", "Console"] :< M.empty
+                , Tuple "Unsafe"  $ Path ["Control", "Monad", "Eff", "Unsafe"]  :< M.empty
                 ]
               ]
             ]
-          , Tuple "Data" $ ["Data"] :< M.fromFoldable
-            [ Tuple "Bounded" $ ["Data", "Bounded"] :< M.empty
-            , Tuple "Eq"      $ ["Data", "Eq"]      :< M.empty
+          , Tuple "Data" $ Path ["Data"] :< M.fromFoldable
+            [ Tuple "Bounded" $ Path ["Data", "Bounded"] :< M.empty
+            , Tuple "Eq"      $ Path ["Data", "Eq"]      :< M.empty
             ]
           ]
 
