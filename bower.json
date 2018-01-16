@@ -9,7 +9,10 @@
   "dependencies": {
     "purescript-prelude": "^3.1.0",
     "purescript-console": "^3.0.0",
-    "purescript-corefn": "paulyoung/purescript-corefn#646c996"
+    "purescript-corefn": "paulyoung/purescript-corefn#646c996",
+    "purescript-lists": "^4.12.0",
+    "purescript-prettier-printer": "^1.1.0",
+    "purescript-maps": "^3.6.0"
   },
   "devDependencies": {
     "purescript-psci-support": "^3.0.0",

@@ -1,123 +1,132 @@
 module PureSwift.CodeGen
  ( moduleToSwift
- , Swift(..)
  ) where
 
 import Prelude
 
-import CoreFn.Expr (Bind(..), Expr(..), Literal(..))
-import CoreFn.Ident (Ident(..))
+import CoreFn.Expr (Bind(..), Expr(Abs, Var, App))
+import CoreFn.Expr (Expr(Literal), Literal(..)) as CoreFn
+import CoreFn.Ident (Ident(..)) as CoreFn
 import CoreFn.Module (Module(..))
 import CoreFn.Names (ModuleName(..), Qualified(..))
-import Data.Array (filter, intercalate, null)
+import Data.Bifunctor (bimap)
 import Data.Either (either)
-import Data.Foldable (elem)
-import Data.Maybe (Maybe, maybe)
-import Data.Newtype (class Newtype, unwrap, wrap)
-import Data.String (Pattern(..), Replacement(..), replaceAll, singleton)
+import Data.Foldable (elem, foldr)
+import Data.List (List(..), (:))
+import Data.List as List
+import Data.Map as Map
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
+import PureSwift.AST (AccessMod(..), Attribute(..), Decl(..), DeclMod(..), Exp(..), FunctionTypeArg(..), Ident(..), Lit(..), Statement(..), Type(..))
 
-newtype Swift = Swift String
-
-derive instance newtypeSwift :: Newtype Swift _
-derive newtype instance eqSwift :: Eq Swift
-derive newtype instance showSwift :: Show Swift
-
-moduleToSwift :: Module Unit -> Swift
-moduleToSwift (Module { builtWith
-                      , moduleDecls
-                      , moduleExports
-                      , moduleForeign
-                      , moduleImports
-                      , moduleName
-                      }) = do
-
-  let name = unwrap moduleName
-  let imports = printImportStatement <$> filterImports moduleImports
-
-  let decls = printBind <$> moduleDecls
-
-  let swift = "" <>
-    "// " <> name <> "\n" <>
-    "// Built with PureScript " <> builtWith <> "\n" <>
-    (if null imports then "" else "\n" <> (intercalate "\n" imports) <> "\n") <>
-    (if null decls then "" else "\n" <> (intercalate "\n" decls) <> "\n") <>
-    ""
-
-  Swift swift
-
+moduleToSwift :: Module Unit -> Decl
+moduleToSwift (Module mod) = TopLevel statements
   where
+  decls :: List Decl
+  decls = foldr (append <<< declToSwift) Nil (List.fromFoldable mod.moduleDecls)
 
-  filterImports :: Array ModuleName -> Array ModuleName
-  filterImports = filter $ notEq (ModuleName "Prim")
+  extension :: Decl
+  extension = Extension (AccessModifier Public : Nil) (moduleNameToSwift mod.moduleName) decls
 
-  isExported :: Ident -> Boolean
-  isExported ident = elem ident moduleExports
+  statements :: List Statement
+  statements = ( Declaration extension : Nil )
 
-  printBind :: Bind Unit -> String
-  printBind (Bind bindings) = intercalate "\n\n" (map printBind' bindings)
+  moduleNameToSwift :: ModuleName -> Ident
+  moduleNameToSwift (ModuleName m) = Ident m
+
+  declToSwift :: Bind Unit -> List Decl
+  declToSwift (Bind bindings) = bindingToSwift <$> List.fromFoldable bindings
+
+  removeAttributes :: FunctionTypeArg -> FunctionTypeArg
+  removeAttributes (FunctionTypeArg e i _ t) = FunctionTypeArg e i Nil t
+
+  removeBothArgLabels :: FunctionTypeArg -> FunctionTypeArg
+  removeBothArgLabels (FunctionTypeArg _ _ as t) = FunctionTypeArg Nothing Nothing as t
+
+  removeAllReturnTypeArgLabels :: FunctionTypeArg -> FunctionTypeArg
+  removeAllReturnTypeArgLabels (FunctionTypeArg as e i r) = FunctionTypeArg as e i (removeAllArgLabels r)
+
+  removeAllArgLabels :: Type -> Type
+  removeAllArgLabels = case _ of
+    (FunctionType as t) ->
+      FunctionType (removeBothArgLabels <<< removeAllReturnTypeArgLabels <$> as) (removeAllArgLabels t)
+    typ -> typ
+
+  expToType' :: (Type -> Type) -> Exp -> Maybe Type
+  expToType' f = case _ of
+    (Closure as r _) -> Just $ f $ FunctionType as r
+    (Literal l) -> litToType l
+    _ -> Nothing
+
+  expToType :: Exp -> Maybe Type
+  expToType = expToType' id
+
+  litToType :: Lit -> Maybe Type
+  litToType = case _ of
+    IntLit _ -> Just IntType
+    FloatLit _ -> Just FloatType
+    CharLit _ -> Just CharType
+    StringLit _ -> Just StringType
+    BooleanLit _ -> Just BoolType
+    _ -> Nothing
+
+  bindingToSwift :: Tuple (Tuple Unit CoreFn.Ident) (CoreFn.Expr Unit) -> Decl
+  bindingToSwift (Tuple (Tuple _ ident) expr) =
+    Constant (accessMod : Static : Nil) (identToSwift ident) (expToType' removeAllArgLabels exp) exp
     where
-    printBind' :: Tuple (Tuple Unit Ident) (Expr Unit) -> String
-    printBind' (Tuple (Tuple unit ident) expr) =
-      let
-        accessControl = if isExported ident then "public " else ""
-        name = printIdent ident
-      in
-        case expr of
-          (Literal _ x) -> accessControl <>
-            "let " <> name <> ": " <> printLiteralType x <> " = " <> printExpr expr
-          (App _ _ _) -> accessControl <>
-            "let " <> name <> " = " <> printExpr expr
-          (Abs _ _ _) -> accessControl <>
-            "let " <> name <> " = " <> printExpr expr
-          (Var _ _) -> accessControl <>
-            "let " <> name <> " = " <> printExpr expr
+    accessMod :: DeclMod
+    accessMod = AccessModifier $ if isExported ident then Public else Internal
 
-  printExpr :: Expr Unit -> String
-  printExpr (Literal _ x) = printLiteral x
-  printExpr (App _ x y) = printExpr x <> "(" <> printExpr y <> ")"
-  printExpr (Abs _ i1 e@(Abs _ i2 _)) = "{ (_ " <> printIdent i1 <> ": (_ " <> printIdent i2 <> ": @escaping (Any) -> Any) in\n    return " <> printExpr e <> "\n}"
-  printExpr (Abs _ i e) = "{ (_ " <> printIdent i <> ": Any) -> Any in\n    return " <> printExpr e <> "\n}"
-  printExpr (Var _ x) = printQualifiedIdent x
+    isExported :: CoreFn.Ident -> Boolean
+    isExported i = elem i mod.moduleExports
 
-  printIdent :: Ident -> String
-  printIdent (Ident x) = x
-  printIdent (GenIdent _ _) = "/* Generated identifiers not yet supported */"
+    exp :: Exp
+    exp = exprToSwift expr
 
-  printImportStatement :: ModuleName -> String
-  printImportStatement name = "import " <> printModuleName name
+  identToSwift :: CoreFn.Ident -> Ident
+  identToSwift (CoreFn.Ident ident) = Ident ident
+  identToSwift (CoreFn.GenIdent s i) = Ident "/* Generated identifiers not yet supported */"
 
-  printLiteral :: Literal (Expr Unit) -> String
-  printLiteral (NumericLiteral x) = either show show x
-  printLiteral (StringLiteral x) = show x
-  printLiteral (CharLiteral x) = (show <<< singleton) x
-  printLiteral (BooleanLiteral x) = show x
-  printLiteral (ArrayLiteral x) = "[" <>
-    (if null x then "" else " " <> intercalate ", " (printExpr <$> x) <> " ") <>
-  "]"
-  printLiteral (ObjectLiteral x) = "[" <>
-    (if null x then ":" else " " <> intercalate ", " (printObjectLiteralPair <$> x) <> " ") <>
-  "]"
+  exprToSwift :: CoreFn.Expr Unit -> Exp
+  exprToSwift (CoreFn.Literal _ l) = Literal $ literalToSwift l
+  exprToSwift (App _ e1 e2) = FunctionCall (exprToSwift e1) (exprToSwift e2 : Nil)
+  exprToSwift (Var _ q) = qualifiedToSwift q
+  exprToSwift (Abs _ i e) = Closure args returnType ss
+    where
+    exp :: Exp
+    exp = exprToSwift e
 
-  printLiteralType :: Literal (Expr Unit) -> String
-  printLiteralType (NumericLiteral x) = either (const "Int") (const "Double") x
-  printLiteralType (StringLiteral _) = "String"
-  printLiteralType (CharLiteral _) = "Character"
-  printLiteralType (BooleanLiteral _) = "Bool"
-  printLiteralType (ArrayLiteral _) = "[Any]"
-  printLiteralType (ObjectLiteral _) = "[String: Any]"
+    atts :: List Attribute
+    atts = case exp of
+      Closure _ _ _ -> Escaping : Nil
+      _ -> Nil
 
-  printModuleName :: ModuleName -> String
-  printModuleName = unwrap <<< renameImport
+    returnType :: Type
+    returnType = fromMaybe AnyType $ expToType exp
 
-  printObjectLiteralPair :: Tuple String (Expr Unit) -> String
-  printObjectLiteralPair (Tuple x y) = "\"" <> x <> "\"" <> ": " <> printExpr y
+    args :: List FunctionTypeArg
+    args =
+      ( FunctionTypeArg (Just $ Ident "_") (Just $ identToSwift i) atts returnType
+      : Nil
+      )
 
-  printQualifiedIdent :: Qualified Ident -> String
-  printQualifiedIdent (Qualified q i) = printQualifier q <> printIdent i
+    ss :: List Statement
+    ss =
+      ( Return (Just exp)
+      : Nil
+      )
 
-  printQualifier :: Maybe ModuleName -> String
-  printQualifier = maybe "" \x -> printModuleName x <> "."
+  literalToSwift :: CoreFn.Literal (Expr Unit) -> Lit
+  literalToSwift (CoreFn.NumericLiteral x) = either IntLit FloatLit x
+  literalToSwift (CoreFn.StringLiteral x) = StringLit x
+  literalToSwift (CoreFn.CharLiteral x) = CharLit x
+  literalToSwift (CoreFn.BooleanLiteral x) = BooleanLit x
+  literalToSwift (CoreFn.ArrayLiteral xs) = ArrayLit $ exprToSwift <$> List.fromFoldable xs
+  literalToSwift (CoreFn.ObjectLiteral xs) = DictLit $ Map.fromFoldable $ map (bimap (Literal <<< StringLit) exprToSwift) xs
 
-  renameImport :: ModuleName -> ModuleName
-  renameImport name = wrap $ replaceAll (Pattern ".") (Replacement "_") (unwrap name)
+  qualifiedToSwift (Qualified q i) =
+    case q of
+      Just m -> ExplicitMember (Identifier $ moduleNameToSwift m) ident
+      Nothing -> Identifier ident
+    where
+      ident = identToSwift i
