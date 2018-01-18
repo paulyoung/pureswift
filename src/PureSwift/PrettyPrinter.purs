@@ -7,7 +7,6 @@ import Prelude
 import Data.Array as Array
 import Data.Foldable (intercalate)
 import Data.List (List(..))
-import Data.List as List
 import Data.Map as Map
 import Data.Maybe (Maybe(Just, Nothing), maybe, maybe')
 import Data.String as String
@@ -60,22 +59,22 @@ ppAccessMod Open = text "open"
 ppAccessMod OpenSet = text "open(set)"
 
 ppBrace :: List Decl -> DOC
-ppBrace List.Nil = text "{}"
+ppBrace Nil = text "{}"
 ppBrace ds = bracket "{" (ppDecls ds) "}"
 
 ppDecls :: List Decl -> DOC
-ppDecls List.Nil = nil
-ppDecls (Cons d List.Nil) = ppDecl d
+ppDecls Nil = nil
+ppDecls (Cons d Nil) = ppDecl d
 ppDecls (Cons d ds) = ppDecl d <> line <> ppDecls ds
 
 ppList :: String -> String -> List Exp -> DOC
-ppList l r List.Nil = text l <> text r
-ppList l r (Cons e List.Nil) = text l <> ppExp e <> text r
+ppList l r Nil = text l <> text r
+ppList l r (Cons e Nil) = text l <> ppExp e <> text r
 ppList l r es = text l <> bracket "" (ppListItems es) "" <> text r
   where
   ppListItems :: List Exp -> DOC
-  ppListItems List.Nil = nil
-  ppListItems (Cons e' List.Nil) = ppExp e'
+  ppListItems Nil = nil
+  ppListItems (Cons e' Nil) = ppExp e'
   ppListItems (Cons e' es') = ppExp e' <> text "," <> line <> ppListItems es'
 
 ppExp :: Exp -> DOC
@@ -94,20 +93,20 @@ ppLit (BooleanLit b) = text $ show b
 ppLit (ArrayLit es) = ppList "[" "]" es
 ppLit (DictLit m) =
   case Map.toAscUnfoldable m of
-    List.Nil -> text "[:]"
-    (Cons t List.Nil) -> text "[" <> ppDictItem t <> text "]"
+    Nil -> text "[:]"
+    (Cons t Nil) -> text "[" <> ppDictItem t <> text "]"
     ts -> text "[" <> bracket "" (ppDictItems ts) "" <> text "]"
   where
   ppDictItems :: List (Tuple Exp Exp) -> DOC
-  ppDictItems List.Nil = nil
-  ppDictItems (Cons t List.Nil) = ppDictItem t
+  ppDictItems Nil = nil
+  ppDictItems (Cons t Nil) = ppDictItem t
   ppDictItems (Cons t ts) = ppDictItem t <> text "," <> line <> ppDictItems ts
 
   ppDictItem :: Tuple Exp Exp -> DOC
   ppDictItem (Tuple k v) = ppExp k <> text ": " <> ppExp v
 
 ppClosure :: List FunctionTypeArg -> Type -> List Statement -> DOC
-ppClosure _ _ List.Nil = text "{}"
+ppClosure _ _ Nil = text "{}"
 ppClosure as r ss =
   text "{ " <> ppFunctionType as r <> text " in"
     <> bracket "" (ppStatements ss) ""
@@ -132,7 +131,7 @@ ppType StringType = text "String"
 ppType BoolType = text "Bool"
 
 ppFunctionType :: List FunctionTypeArg -> Type -> DOC
-ppFunctionType List.Nil r = ppType r
+ppFunctionType Nil r = ppType r
 ppFunctionType args r = ppFunctionTypeArgs args <> text " -> " <> ppType r
   where
   ppFunctionTypeArgs :: List FunctionTypeArg -> DOC
