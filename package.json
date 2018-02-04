@@ -1,0 +1,6 @@
+{
+  "name": "pureswift",
+  "bin": {
+    "psw": "psw"
+  }
+}

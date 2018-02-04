@@ -1,0 +1,4 @@
+#!/usr/bin/env node
+
+// TODO: use bundled file
+require("./output/PSWC/index.js").main();
