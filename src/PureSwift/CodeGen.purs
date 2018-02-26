@@ -14,7 +14,7 @@ import Data.Array (intercalate)
 import Data.Bifunctor (bimap)
 import Data.Either (either)
 import Data.Foldable (elem, foldr)
-import Data.Int as Int
+import Data.Int (decimal, toStringAs)
 import Data.List (List(..), (:))
 import Data.List as List
 import Data.Map as Map
@@ -90,7 +90,7 @@ moduleToSwift (Module mod) = TopLevel statements
 
   identToSwift :: CoreFn.Ident -> Ident
   identToSwift (CoreFn.Ident ident) = Ident ident
-  identToSwift (CoreFn.GenIdent s i) = Ident $ fromMaybe "" s <> Int.toStringAs Int.decimal i
+  identToSwift (CoreFn.GenIdent s i) = Ident $ fromMaybe "" s <> toStringAs decimal i
   identToSwift CoreFn.UnusedIdent = Ident "/* FIXME */"
 
   exprToSwift :: CoreFn.Expr Unit -> Exp
