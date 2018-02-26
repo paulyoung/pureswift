@@ -5,17 +5,21 @@ module PureSwift.CodeGen
 import Prelude
 
 import CoreFn.Expr (Bind(..), Expr(Abs, Var, App))
-import CoreFn.Expr (Expr(Literal), Literal(..)) as CoreFn
+import CoreFn.Expr (Expr(Literal)) as CoreFn
 import CoreFn.Ident (Ident(..)) as CoreFn
+import CoreFn.Literal (Literal(..)) as CoreFn
 import CoreFn.Module (Module(..))
 import CoreFn.Names (ModuleName(..), Qualified(..))
+import Data.Array (intercalate)
 import Data.Bifunctor (bimap)
 import Data.Either (either)
 import Data.Foldable (elem, foldr)
+import Data.Int as Int
 import Data.List (List(..), (:))
 import Data.List as List
 import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Newtype (unwrap)
 import Data.Tuple (Tuple(..))
 import PureSwift.AST (AccessMod(..), Attribute(..), Decl(..), DeclMod(..), Exp(..), FunctionTypeArg(..), Ident(..), Lit(..), Statement(..), Type(..))
 
@@ -32,10 +36,11 @@ moduleToSwift (Module mod) = TopLevel statements
   statements = ( Declaration extension : Nil )
 
   moduleNameToSwift :: ModuleName -> Ident
-  moduleNameToSwift (ModuleName m) = Ident m
+  moduleNameToSwift (ModuleName mn) = Ident $ intercalate "." (unwrap <$> mn)
 
   declToSwift :: Bind Unit -> List Decl
-  declToSwift (Bind bindings) = bindingToSwift <$> List.fromFoldable bindings
+  declToSwift (NonRec a i e) = List.singleton $ bindingToSwift (Tuple (Tuple a i) e)
+  declToSwift (Rec bs) = bindingToSwift <$> List.fromFoldable bs
 
   removeAttributes :: FunctionTypeArg -> FunctionTypeArg
   removeAttributes (FunctionTypeArg e i _ t) = FunctionTypeArg e i Nil t
@@ -85,7 +90,8 @@ moduleToSwift (Module mod) = TopLevel statements
 
   identToSwift :: CoreFn.Ident -> Ident
   identToSwift (CoreFn.Ident ident) = Ident ident
-  identToSwift (CoreFn.GenIdent s i) = Ident "/* Generated identifiers not yet supported */"
+  identToSwift (CoreFn.GenIdent s i) = Ident $ fromMaybe "" s <> Int.toStringAs Int.decimal i
+  identToSwift CoreFn.UnusedIdent = Ident "/* FIXME */"
 
   exprToSwift :: CoreFn.Expr Unit -> Exp
   exprToSwift (CoreFn.Literal _ l) = Literal $ literalToSwift l

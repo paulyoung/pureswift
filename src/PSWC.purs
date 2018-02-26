@@ -7,7 +7,8 @@ import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Console (CONSOLE, log)
 import Control.Monad.Except (runExcept)
-import CoreFn.Module (Module(..), readModuleJSON)
+import CoreFn.FromJSON (moduleFromJSON)
+import CoreFn.Module (Module(..))
 import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Foldable (foldr, for_)
@@ -16,7 +17,6 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Monoid (guard)
 import Data.Newtype (unwrap)
 import Data.Path.Pathy (Dir, DirName(DirName), Path, Rel, Sandboxed, dir, dir', file, printPath, runDirName, (</>))
-import Data.String (Pattern(..))
 import Data.String as S
 import Data.Trie (Trie(..), fromPaths)
 import Data.Trie as Trie
@@ -83,16 +83,16 @@ toPaths = foldr acc (pure [])
 
           whenM (exists filepath) do
             coreFn <- readTextFile UTF8 $ filepath
-            case runExcept (readModuleJSON coreFn) of
+            case runExcept (moduleFromJSON coreFn) of
               Left e ->
                 -- trace ("Left: " <> show e) \_->
                 modulePaths
-              Right (Module module_) ->
+              Right { module: (Module module_) } ->
                 -- trace ("Right: " <> show module_.moduleForeign) \_ ->
                 let
                   { moduleForeign, moduleName } = module_
                   hasForeign = not Array.null moduleForeign
-                  modulePath = Trie.Path $ S.split (Pattern ".") $ unwrap moduleName
+                  modulePath = Trie.Path $ map unwrap $ unwrap moduleName
                   foreignPaths = guard hasForeign [modulePath <> Trie.Path ["_Foreign"]]
                   paths = [modulePath] <> foreignPaths
                 in
