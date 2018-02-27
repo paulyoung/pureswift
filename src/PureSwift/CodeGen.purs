@@ -91,7 +91,7 @@ moduleToSwift (Module mod) = TopLevel statements
   identToSwift :: CoreFn.Ident -> Ident
   identToSwift (CoreFn.Ident ident) = Ident ident
   identToSwift (CoreFn.GenIdent s i) = Ident $ fromMaybe "" s <> toStringAs decimal i
-  identToSwift CoreFn.UnusedIdent = Ident "/* FIXME */"
+  identToSwift CoreFn.UnusedIdent = Ident "/* FIXME: UnusedIdent */"
 
   exprToSwift :: CoreFn.Expr Unit -> Exp
   exprToSwift (CoreFn.Literal _ l) = Literal $ literalToSwift l
