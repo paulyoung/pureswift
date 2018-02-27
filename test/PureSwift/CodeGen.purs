@@ -2,6 +2,7 @@ module Test.PureSwift.CodeGen where
 
 import Prelude
 
+import CoreFn.Ann (SourcePos(..), SourceSpan(..), ssAnn)
 import CoreFn.Expr (Bind(..), Expr(Abs, App, Var))
 import CoreFn.Expr (Expr(Literal)) as CoreFn
 import CoreFn.Ident (Ident(..)) as CoreFn
@@ -12,6 +13,7 @@ import Data.Either (Either(..))
 import Data.List (List(..), (:))
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
+import Data.Newtype (unwrap)
 import Data.Tuple (Tuple(..))
 import PureSwift.AST (AccessMod(..), Attribute(..), Decl(..), DeclMod(..), Exp(..), FunctionTypeArg(..), Ident(..), Lit(..), Statement(..), Type(..))
 import PureSwift.CodeGen (moduleToSwift)
@@ -23,8 +25,6 @@ spec :: forall r. Spec r Unit
 spec = describe "CodeGen" do
   it "Exports" do
     let
-      --builtWith = "0.10.1"
-
       moduleComments = []
 
       moduleName = ModuleName [ ProperName "Exports" ]
@@ -33,7 +33,11 @@ spec = describe "CodeGen" do
 
       moduleImports =
         [ ModuleImport
-            { ann: ?x
+            { ann: ssAnn $ SourceSpan
+                { spanName: unwrap modulePath
+                , spanStart: SourcePos { sourcePosLine: 1, sourcePosColumn: 1 }
+                , spanEnd: SourcePos { sourcePosLine: 3, sourcePosColumn: 8 }
+                }
             , moduleName: ModuleName [ ProperName "Prim" ]
             }
         ]
@@ -104,8 +108,6 @@ spec = describe "CodeGen" do
       declExpr = App unit declVar declLiteral
       decl = NonRec unit declIdent declExpr
 
-      -- builtWith = "0.10.1"
-
       moduleComments = []
 
       moduleName = ModuleName $ [ ProperName "Main" ]
@@ -113,10 +115,38 @@ spec = describe "CodeGen" do
       modulePath = FilePath "src/Main.purs"
 
       moduleImports =
-        [ ModuleImport { ann: ?x, moduleName: ModuleName [ ProperName "Prim" ] }
-        , ModuleImport { ann: ?x, moduleName: ModuleName [ ProperName "Prelude" ] }
-        , ModuleImport { ann: ?x, moduleName: ModuleName [ ProperName "Control.Monad.Eff" ] }
-        , ModuleImport { ann: ?x, moduleName: ModuleName [ ProperName "Control.Monad.Eff.Console" ] }
+        [ ModuleImport
+            { ann: ssAnn $ SourceSpan
+                { spanName: unwrap modulePath
+                , spanStart: SourcePos { sourcePosLine: 1, sourcePosColumn: 1 }
+                , spanEnd: SourcePos { sourcePosLine: 5, sourcePosColumn: 26 }
+                }
+            , moduleName: ModuleName [ ProperName "Prim" ]
+            }
+        , ModuleImport
+            { ann: ssAnn $ SourceSpan
+                { spanName: unwrap modulePath
+                , spanStart: SourcePos { sourcePosLine: 1, sourcePosColumn: 3 }
+                , spanEnd: SourcePos { sourcePosLine: 3, sourcePosColumn: 15 }
+                }
+            , moduleName: ModuleName [ ProperName "Prelude" ]
+            }
+        , ModuleImport
+            { ann: ssAnn $ SourceSpan
+                { spanName: unwrap modulePath
+                , spanStart: SourcePos { sourcePosLine: 4, sourcePosColumn: 1 }
+                , spanEnd: SourcePos { sourcePosLine: 4, sourcePosColumn: 25 }
+                }
+            , moduleName: ModuleName [ ProperName "Control.Monad.Eff" ]
+            }
+        , ModuleImport
+            { ann: ssAnn $ SourceSpan
+                { spanName: unwrap modulePath
+                , spanStart: SourcePos { sourcePosLine: 5, sourcePosColumn: 1 }
+                , spanEnd: SourcePos { sourcePosLine: 5, sourcePosColumn: 26 }
+                }
+            , moduleName: ModuleName [ ProperName "Control.Monad.Eff.Console" ]
+            }
         ]
 
       moduleExports = [ CoreFn.Ident "main" ]
@@ -165,15 +195,22 @@ spec = describe "CodeGen" do
         charLiteral = CoreFn.Literal unit $ CoreFn.CharLiteral 'a'
         booleanLiteral = CoreFn.Literal unit $ CoreFn.BooleanLiteral true
 
-        -- builtWith = "0.10.1"
-
         moduleComments = []
 
         moduleName = ModuleName [ ProperName "Literals" ]
 
         modulePath = FilePath "src/Literals.purs"
 
-        moduleImports = [ ModuleImport { ann: ?x, moduleName: ModuleName [ ProperName "Prim" ] } ]
+        moduleImports =
+          [ ModuleImport
+              { ann: ssAnn $ SourceSpan
+                  { spanName: unwrap modulePath
+                  , spanStart: SourcePos { sourcePosLine: 1, sourcePosColumn: 1 }
+                  , spanEnd: SourcePos { sourcePosLine: 3, sourcePosColumn: 8 }
+                  }
+              , moduleName: ModuleName [ ProperName "Prim" ]
+              }
+          ]
 
         moduleExports = []
 
@@ -248,15 +285,22 @@ spec = describe "CodeGen" do
           , CoreFn.Literal unit $ CoreFn.BooleanLiteral true
           ]
 
-        -- builtWith = "0.10.1"
-
         moduleComments = []
 
         moduleName = ModuleName [ ProperName "ArrayLiterals" ]
 
         modulePath = FilePath "src/ArrayLiterals.purs"
 
-        moduleImports = [ ModuleImport { ann: ?x, moduleName: ModuleName [ ProperName "Prim" ] } ]
+        moduleImports =
+          [ ModuleImport
+              { ann: ssAnn $ SourceSpan
+                  { spanName: unwrap modulePath
+                  , spanStart: SourcePos { sourcePosLine: 1, sourcePosColumn: 1 }
+                  , spanEnd: SourcePos { sourcePosLine: 3, sourcePosColumn: 8 }
+                  }
+              , moduleName: ModuleName [ ProperName "Prim" ]
+              }
+          ]
 
         moduleExports = []
 
@@ -337,15 +381,22 @@ spec = describe "CodeGen" do
           , Tuple "c" (CoreFn.Literal unit $ CoreFn.BooleanLiteral true)
           ]
 
-        -- builtWith = "0.10.1"
-
         moduleComments = []
 
         moduleName = ModuleName [ ProperName "DictLiterals" ]
 
         modulePath = FilePath "src/DictLiterals.purs"
 
-        moduleImports = [ ModuleImport { ann: ?x, moduleName: ModuleName [ ProperName "Prim" ] } ]
+        moduleImports =
+          [ ModuleImport
+              { ann: ssAnn $ SourceSpan
+                  { spanName: unwrap modulePath
+                  , spanStart: SourcePos { sourcePosLine: 1, sourcePosColumn: 1 }
+                  , spanEnd: SourcePos { sourcePosLine: 3, sourcePosColumn: 8 }
+                  }
+              , moduleName: ModuleName [ ProperName "Prim" ]
+              }
+          ]
 
         moduleExports = []
 
@@ -430,15 +481,22 @@ spec = describe "CodeGen" do
       gAbs = Abs unit (CoreFn.Ident "x") gApp
       gBinding = Tuple (Tuple unit gIdent) gAbs
 
-      -- builtWith = "0.10.1"
-
       moduleComments = []
 
       moduleName = ModuleName [ ProperName "MutRec" ]
 
       modulePath = FilePath "src/MutRec.purs"
 
-      moduleImports = [ ModuleImport { ann: ?x, moduleName: ModuleName [ ProperName "Prim" ] } ]
+      moduleImports =
+        [ ModuleImport
+            { ann: ssAnn $ SourceSpan
+                { spanName: unwrap modulePath
+                , spanStart: SourcePos { sourcePosLine: 1, sourcePosColumn: 1 }
+                , spanEnd: SourcePos { sourcePosLine: 3, sourcePosColumn: 8 }
+                }
+            , moduleName: ModuleName [ ProperName "Prim" ]
+            }
+        ]
 
       moduleExports = []
 
@@ -511,15 +569,22 @@ spec = describe "CodeGen" do
       fVar = Var unit $ Qualified Nothing $ CoreFn.Ident "f"
       xVar = Var unit $ Qualified Nothing $ CoreFn.Ident "x"
 
-      -- builtWith = "0.10.1"
-
       moduleComments = []
 
       moduleName = ModuleName [ ProperName "HigherOrder" ]
 
       modulePath = FilePath "src/HigherOrder.purs"
 
-      moduleImports = [ ModuleImport { ann: ?x, moduleName: ModuleName [ ProperName "Prim" ] } ]
+      moduleImports =
+        [ ModuleImport
+            { ann: ssAnn $ SourceSpan
+                { spanName: unwrap modulePath
+                , spanStart: SourcePos { sourcePosLine: 1, sourcePosColumn: 1 }
+                , spanEnd: SourcePos { sourcePosLine: 3, sourcePosColumn: 8 }
+                }
+            , moduleName: ModuleName [ ProperName "Prim" ]
+            }
+        ]
 
       moduleExports = [ CoreFn.Ident "hof" ]
 
