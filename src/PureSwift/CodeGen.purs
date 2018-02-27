@@ -95,9 +95,9 @@ moduleToSwift (Module mod) = TopLevel statements
 
   exprToSwift :: CoreFn.Expr Unit -> Exp
   exprToSwift (CoreFn.Literal _ l) = Literal $ literalToSwift l
-  exprToSwift (Constructor _ tn cn fs) = ?x
-  exprToSwift (Accessor _ s e) = ?x
-  exprToSwift (ObjectUpdate _ e ts) = ?x
+  exprToSwift (Constructor _ tn cn fs) = Literal $ StringLit "/* FIXME: Constructor Exp */"
+  exprToSwift (Accessor _ s e) = Literal $ StringLit "/* FIXME: Accessor Exp */"
+  exprToSwift (ObjectUpdate _ e ts) = Literal $ StringLit "/* FIXME: ObjectUpdate Exp */"
   exprToSwift (Abs _ i e) = Closure args returnType ss
     where
     exp :: Exp
@@ -124,8 +124,8 @@ moduleToSwift (Module mod) = TopLevel statements
       )
   exprToSwift (App _ e1 e2) = FunctionCall (exprToSwift e1) (exprToSwift e2 : Nil)
   exprToSwift (Var _ q) = qualifiedToSwift q
-  exprToSwift (Case _ es cs) = ?x
-  exprToSwift (Let _ bs e) = ?x
+  exprToSwift (Case _ es cs) = Literal $ StringLit "/* FIXME: Case Exp */"
+  exprToSwift (Let _ bs e) = Literal $ StringLit "/* FIXME: Let Exp */"
 
   literalToSwift :: CoreFn.Literal (Expr Unit) -> Lit
   literalToSwift (CoreFn.NumericLiteral x) = either IntLit FloatLit x

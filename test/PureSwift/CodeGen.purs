@@ -3,10 +3,11 @@ module Test.PureSwift.CodeGen where
 import Prelude
 
 import CoreFn.Expr (Bind(..), Expr(Abs, App, Var))
-import CoreFn.Expr (Expr(Literal), Literal(..)) as CoreFn
+import CoreFn.Expr (Expr(Literal)) as CoreFn
 import CoreFn.Ident (Ident(..)) as CoreFn
-import CoreFn.Module (Module(..))
-import CoreFn.Names (ModuleName(..), Qualified(..))
+import CoreFn.Literal (Literal(..)) as CoreFn
+import CoreFn.Module (FilePath(..), Module(..), ModuleImport(..))
+import CoreFn.Names (ModuleName(..), ProperName(..), Qualified(..))
 import Data.Either (Either(..))
 import Data.List (List(..), (:))
 import Data.Map as Map
@@ -22,31 +23,41 @@ spec :: forall r. Spec r Unit
 spec = describe "CodeGen" do
   it "Exports" do
     let
-      exported = CoreFn.Literal unit $ CoreFn.StringLiteral "exported"
-      notExported = CoreFn.Literal unit $ CoreFn.StringLiteral "not exported"
+      --builtWith = "0.10.1"
 
-      builtWith = "0.10.1"
+      moduleComments = []
 
-      moduleDecls =
-        [ Bind [(Tuple (Tuple unit (CoreFn.Ident "exported")) exported)]
-        , Bind [(Tuple (Tuple unit (CoreFn.Ident "notExported")) notExported)]
+      moduleName = ModuleName [ ProperName "Exports" ]
+
+      modulePath = FilePath "src/Exports.purs"
+
+      moduleImports =
+        [ ModuleImport
+            { ann: ?x
+            , moduleName: ModuleName [ ProperName "Prim" ]
+            }
         ]
 
       moduleExports = [ CoreFn.Ident "exported" ]
 
       moduleForeign = []
 
-      moduleImports = [ ModuleName "Prim" ]
+      exported = CoreFn.Literal unit $ CoreFn.StringLiteral "exported"
+      notExported = CoreFn.Literal unit $ CoreFn.StringLiteral "not exported"
 
-      moduleName = ModuleName "Exports"
+      moduleDecls =
+        [ NonRec unit (CoreFn.Ident "exported") exported
+        , NonRec unit (CoreFn.Ident "notExported") notExported
+        ]
 
       mod = Module
-        { builtWith
-        , moduleDecls
+        { moduleComments
+        , moduleName
+        , modulePath
+        , moduleImports
         , moduleExports
         , moduleForeign
-        , moduleImports
-        , moduleName
+        , moduleDecls
         }
 
       public =
@@ -85,38 +96,43 @@ spec = describe "CodeGen" do
   it "Hello World" do
     let
       declIdent = CoreFn.Ident "main"
-      declModuleName = Just (ModuleName "Control.Monad.Eff.Console")
+      declModuleName = Just $ ModuleName [ ProperName "Control.Monad.Eff.Console" ]
       declQualifier = Qualified declModuleName (CoreFn.Ident "log")
       declVar = Var unit declQualifier
       declLiteral = CoreFn.Literal unit $ CoreFn.StringLiteral "Hello world!"
 
       declExpr = App unit declVar declLiteral
-      decl = Bind [(Tuple (Tuple unit declIdent) declExpr)]
+      decl = NonRec unit declIdent declExpr
 
-      builtWith = "0.10.1"
+      -- builtWith = "0.10.1"
 
-      moduleDecls = [ decl ]
+      moduleComments = []
+
+      moduleName = ModuleName $ [ ProperName "Main" ]
+
+      modulePath = FilePath "src/Main.purs"
+
+      moduleImports =
+        [ ModuleImport { ann: ?x, moduleName: ModuleName [ ProperName "Prim" ] }
+        , ModuleImport { ann: ?x, moduleName: ModuleName [ ProperName "Prelude" ] }
+        , ModuleImport { ann: ?x, moduleName: ModuleName [ ProperName "Control.Monad.Eff" ] }
+        , ModuleImport { ann: ?x, moduleName: ModuleName [ ProperName "Control.Monad.Eff.Console" ] }
+        ]
 
       moduleExports = [ CoreFn.Ident "main" ]
 
       moduleForeign = []
 
-      moduleImports =
-        [ ModuleName "Prim"
-        , ModuleName "Prelude"
-        , ModuleName "Control.Monad.Eff"
-        , ModuleName "Control.Monad.Eff.Console"
-        ]
-
-      moduleName = ModuleName "Main"
+      moduleDecls = [ decl ]
 
       mod = Module
-        { builtWith
-        , moduleDecls
+        { moduleComments
+        , moduleName
+        , modulePath
+        , moduleImports
         , moduleExports
         , moduleForeign
-        , moduleImports
-        , moduleName
+        , moduleDecls
         }
 
       actualDecl = moduleToSwift mod
@@ -149,31 +165,36 @@ spec = describe "CodeGen" do
         charLiteral = CoreFn.Literal unit $ CoreFn.CharLiteral 'a'
         booleanLiteral = CoreFn.Literal unit $ CoreFn.BooleanLiteral true
 
-        builtWith = "0.10.1"
+        -- builtWith = "0.10.1"
 
-        moduleDecls =
-          [ Bind [(Tuple (Tuple unit (CoreFn.Ident "int")) intLiteral)]
-          , Bind [(Tuple (Tuple unit (CoreFn.Ident "float")) floatLiteral)]
-          , Bind [(Tuple (Tuple unit (CoreFn.Ident "string")) stringLiteral)]
-          , Bind [(Tuple (Tuple unit (CoreFn.Ident "char")) charLiteral)]
-          , Bind [(Tuple (Tuple unit (CoreFn.Ident "boolean")) booleanLiteral)]
-          ]
+        moduleComments = []
+
+        moduleName = ModuleName [ ProperName "Literals" ]
+
+        modulePath = FilePath "src/Literals.purs"
+
+        moduleImports = [ ModuleImport { ann: ?x, moduleName: ModuleName [ ProperName "Prim" ] } ]
 
         moduleExports = []
 
         moduleForeign = []
 
-        moduleImports = [ ModuleName "Prim" ]
-
-        moduleName = ModuleName "Literals"
+        moduleDecls =
+          [ NonRec unit (CoreFn.Ident "int") intLiteral
+          , NonRec unit (CoreFn.Ident "float") floatLiteral
+          , NonRec unit (CoreFn.Ident "string") stringLiteral
+          , NonRec unit (CoreFn.Ident "char") charLiteral
+          , NonRec unit (CoreFn.Ident "boolean") booleanLiteral
+          ]
 
         mod = Module
-          { builtWith
-          , moduleDecls
+          { moduleComments
+          , moduleName
+          , modulePath
+          , moduleImports
           , moduleExports
           , moduleForeign
-          , moduleImports
-          , moduleName
+          , moduleDecls
           }
 
         actualDecl = moduleToSwift mod
@@ -227,29 +248,34 @@ spec = describe "CodeGen" do
           , CoreFn.Literal unit $ CoreFn.BooleanLiteral true
           ]
 
-        builtWith = "0.10.1"
+        -- builtWith = "0.10.1"
 
-        moduleDecls =
-          [ Bind [(Tuple (Tuple unit (CoreFn.Ident "empty")) empty)]
-          , Bind [(Tuple (Tuple unit (CoreFn.Ident "singleItem")) singleItem)]
-          , Bind [(Tuple (Tuple unit (CoreFn.Ident "multipleItems")) multipleItems)]
-          ]
+        moduleComments = []
+
+        moduleName = ModuleName [ ProperName "ArrayLiterals" ]
+
+        modulePath = FilePath "src/ArrayLiterals.purs"
+
+        moduleImports = [ ModuleImport { ann: ?x, moduleName: ModuleName [ ProperName "Prim" ] } ]
 
         moduleExports = []
 
         moduleForeign = []
 
-        moduleImports = [ ModuleName "Prim" ]
-
-        moduleName = ModuleName "ArrayLiterals"
+        moduleDecls =
+          [ NonRec unit (CoreFn.Ident "empty") empty
+          , NonRec unit (CoreFn.Ident "singleItem") singleItem
+          , NonRec unit (CoreFn.Ident "multipleItems") multipleItems
+          ]
 
         mod = Module
-          { builtWith
-          , moduleDecls
+          { moduleComments
+          , moduleName
+          , modulePath
+          , moduleImports
           , moduleExports
           , moduleForeign
-          , moduleImports
-          , moduleName
+          , moduleDecls
           }
 
         actualDecl = moduleToSwift mod
@@ -311,29 +337,34 @@ spec = describe "CodeGen" do
           , Tuple "c" (CoreFn.Literal unit $ CoreFn.BooleanLiteral true)
           ]
 
-        builtWith = "0.10.1"
+        -- builtWith = "0.10.1"
 
-        moduleDecls =
-          [ Bind [(Tuple (Tuple unit (CoreFn.Ident "empty")) empty)]
-          , Bind [(Tuple (Tuple unit (CoreFn.Ident "singleItem")) singleItem)]
-          , Bind [(Tuple (Tuple unit (CoreFn.Ident "multipleItems")) multipleItems)]
-          ]
+        moduleComments = []
+
+        moduleName = ModuleName [ ProperName "DictLiterals" ]
+
+        modulePath = FilePath "src/DictLiterals.purs"
+
+        moduleImports = [ ModuleImport { ann: ?x, moduleName: ModuleName [ ProperName "Prim" ] } ]
 
         moduleExports = []
 
         moduleForeign = []
 
-        moduleImports = [ ModuleName "Prim" ]
-
-        moduleName = ModuleName "DictLiterals"
+        moduleDecls =
+          [ NonRec unit (CoreFn.Ident "empty") empty
+          , NonRec unit (CoreFn.Ident "singleItem") singleItem
+          , NonRec unit (CoreFn.Ident "multipleItems") multipleItems
+          ]
 
         mod = Module
-          { builtWith
-          , moduleDecls
+          { moduleComments
+          , moduleName
+          , modulePath
+          , moduleImports
           , moduleExports
           , moduleForeign
-          , moduleImports
-          , moduleName
+          , moduleDecls
           }
 
         actualDecl = moduleToSwift mod
@@ -382,7 +413,7 @@ spec = describe "CodeGen" do
   it "Mutually recursive bindings" do
     let
       fIdent = CoreFn.Ident "f"
-      fModuleName = Just (ModuleName "MutRec")
+      fModuleName = Just $ ModuleName [ ProperName "MutRec" ]
       fQualified = Qualified fModuleName (CoreFn.Ident "g")
       fAppVar1 = Var unit fQualified
       fAppVar2 = Var unit (Qualified Nothing (CoreFn.Ident "x"))
@@ -391,7 +422,7 @@ spec = describe "CodeGen" do
       fBinding = Tuple (Tuple unit fIdent) fAbs
 
       gIdent = CoreFn.Ident "g"
-      gModuleName = Just (ModuleName "MutRec")
+      gModuleName = Just $ ModuleName [ ProperName "MutRec" ]
       gQualified = Qualified gModuleName (CoreFn.Ident "f")
       gAppVar1 = Var unit gQualified
       gAppVar2 = Var unit (Qualified Nothing (CoreFn.Ident "x"))
@@ -399,27 +430,32 @@ spec = describe "CodeGen" do
       gAbs = Abs unit (CoreFn.Ident "x") gApp
       gBinding = Tuple (Tuple unit gIdent) gAbs
 
-      builtWith = "0.10.1"
+      -- builtWith = "0.10.1"
 
-      moduleDecls =
-        [ Bind [fBinding, gBinding]
-        ]
+      moduleComments = []
+
+      moduleName = ModuleName [ ProperName "MutRec" ]
+
+      modulePath = FilePath "src/MutRec.purs"
+
+      moduleImports = [ ModuleImport { ann: ?x, moduleName: ModuleName [ ProperName "Prim" ] } ]
 
       moduleExports = []
 
       moduleForeign = []
 
-      moduleImports = [ ModuleName "Prim" ]
-
-      moduleName = ModuleName "MutRec"
+      moduleDecls =
+        [ Rec [ fBinding, gBinding ]
+        ]
 
       mod = Module
-        { builtWith
-        , moduleDecls
+        { moduleComments
+        , moduleName
+        , modulePath
+        , moduleImports
         , moduleExports
         , moduleForeign
-        , moduleImports
-        , moduleName
+        , moduleDecls
         }
 
       actualDecl = moduleToSwift mod
@@ -469,34 +505,38 @@ spec = describe "CodeGen" do
 
   it "higher-order functions" do
     let
-      hofDecl = Tuple (Tuple unit $ CoreFn.Ident "hof") abs1
       abs1 = Abs unit (CoreFn.Ident "f") abs2
       abs2 = Abs unit (CoreFn.Ident "x") app
       app = App unit fVar xVar
       fVar = Var unit $ Qualified Nothing $ CoreFn.Ident "f"
       xVar = Var unit $ Qualified Nothing $ CoreFn.Ident "x"
 
-      builtWith = "0.10.1"
+      -- builtWith = "0.10.1"
 
-      moduleDecls =
-        [ Bind [hofDecl]
-        ]
+      moduleComments = []
+
+      moduleName = ModuleName [ ProperName "HigherOrder" ]
+
+      modulePath = FilePath "src/HigherOrder.purs"
+
+      moduleImports = [ ModuleImport { ann: ?x, moduleName: ModuleName [ ProperName "Prim" ] } ]
 
       moduleExports = [ CoreFn.Ident "hof" ]
 
       moduleForeign = []
 
-      moduleImports = [ ModuleName "Prim" ]
-
-      moduleName = ModuleName "HigherOrder"
+      moduleDecls =
+        [ NonRec unit (CoreFn.Ident "hof") abs1
+        ]
 
       mod = Module
-        { builtWith
-        , moduleDecls
+        { moduleComments
+        , moduleName
+        , modulePath
+        , moduleImports
         , moduleExports
         , moduleForeign
-        , moduleImports
-        , moduleName
+        , moduleDecls
         }
 
       actualDecl = moduleToSwift mod
