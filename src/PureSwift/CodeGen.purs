@@ -4,7 +4,7 @@ module PureSwift.CodeGen
 
 import Prelude
 
-import CoreFn.Expr (Bind(..), Expr(Abs, Var, App))
+import CoreFn.Expr (Bind(..), Expr(Abs, Accessor, App, Case, Constructor, ObjectUpdate, Let, Var))
 import CoreFn.Expr (Expr(Literal)) as CoreFn
 import CoreFn.Ident (Ident(..)) as CoreFn
 import CoreFn.Literal (Literal(..)) as CoreFn
@@ -95,8 +95,9 @@ moduleToSwift (Module mod) = TopLevel statements
 
   exprToSwift :: CoreFn.Expr Unit -> Exp
   exprToSwift (CoreFn.Literal _ l) = Literal $ literalToSwift l
-  exprToSwift (App _ e1 e2) = FunctionCall (exprToSwift e1) (exprToSwift e2 : Nil)
-  exprToSwift (Var _ q) = qualifiedToSwift q
+  exprToSwift (Constructor _ tn cn fs) = ?x
+  exprToSwift (Accessor _ s e) = ?x
+  exprToSwift (ObjectUpdate _ e ts) = ?x
   exprToSwift (Abs _ i e) = Closure args returnType ss
     where
     exp :: Exp
@@ -121,6 +122,10 @@ moduleToSwift (Module mod) = TopLevel statements
       ( Return (Just exp)
       : Nil
       )
+  exprToSwift (App _ e1 e2) = FunctionCall (exprToSwift e1) (exprToSwift e2 : Nil)
+  exprToSwift (Var _ q) = qualifiedToSwift q
+  exprToSwift (Case _ es cs) = ?x
+  exprToSwift (Let _ bs e) = ?x
 
   literalToSwift :: CoreFn.Literal (Expr Unit) -> Lit
   literalToSwift (CoreFn.NumericLiteral x) = either IntLit FloatLit x
