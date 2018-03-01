@@ -18,6 +18,7 @@ import Data.Monoid (guard)
 import Data.Newtype (unwrap)
 import Data.Path.Pathy (Dir, DirName(DirName), Path, Rel, Sandboxed, currentDir, dir, dir', file, parseRelFile, printPath, runDirName, sandbox, (<.>), (</>))
 import Data.String as S
+import Data.Traversable (traverse)
 import Data.Trie (Trie(..), fromPaths)
 import Data.Trie as Trie
 import Debug.Trace (trace)
@@ -35,25 +36,28 @@ type Effects eff =
   | eff
   )
 
-dryRun :: forall eff. Trie -> Eff (console :: CONSOLE | eff) Unit
-dryRun (Trie trie) = for_ trie \(Trie.Path path) ->
-  case Array.unsnoc path of
-    Just { init, last } -> do
-      log $ "// " <> Array.intercalate "." path <> "__Namespace.swift"
-      let
-        enum = Enum (AccessModifier Public : Nil) (Ident last) Nil
-        decl = if Array.null init then enum else Extension (AccessModifier Public : Nil) (Ident $ Array.intercalate "." init) (enum : Nil)
-      log $ prettyPrint decl <> "\n"
-    Nothing -> pure unit
+dryRun :: forall eff. Trie -> Array String -> Eff (console :: CONSOLE | eff) Unit
+dryRun (Trie trie) ffis = do
+  for_ trie \(Trie.Path path) ->
+    case Array.unsnoc path of
+      Just { init, last } -> do
+        log $ "// " <> Array.intercalate "." path <> "__Namespace.swift"
+        let
+          enum = Enum (AccessModifier Public : Nil) (Ident last) Nil
+          decl = if Array.null init then enum else Extension (AccessModifier Public : Nil) (Ident $ Array.intercalate "." init) (enum : Nil)
+        log $ prettyPrint decl <> "\n"
+      Nothing -> pure unit
+  log $ Array.intercalate "\n" ffis
 
-toPaths :: forall eff. Array FilePath -> Aff (Effects eff) (Array Trie.Path)
-toPaths = foldr acc (pure [])
+toPaths :: forall eff. Array FilePath -> Aff (Effects eff) ({ moduleNamePaths :: Array Trie.Path, ffis :: Array String })
+toPaths = foldr acc (pure { moduleNamePaths: [], ffis: [] })
   where
     acc
       :: String
-      -> Aff (Effects eff) (Array Trie.Path)
-      -> Aff (Effects eff) (Array Trie.Path)
-    acc filename moduleNamePaths = do
+      -> Aff (Effects eff) ({ moduleNamePaths :: Array Trie.Path, ffis :: Array String })
+      -> Aff (Effects eff) ({ moduleNamePaths :: Array Trie.Path, ffis :: Array String })
+    acc filename state = do
+      { moduleNamePaths, ffis } <- state
       let
         moduleDir :: Path Rel Dir Sandboxed
         moduleDir = dir' outputDir </> dir filename
@@ -63,15 +67,15 @@ toPaths = foldr acc (pure [])
 
         when
           :: Boolean
-          -> Aff (Effects eff) (Array Trie.Path)
-          -> Aff (Effects eff) (Array Trie.Path)
+          -> Aff (Effects eff) ({ moduleNamePaths :: Array Trie.Path, ffis :: Array String })
+          -> Aff (Effects eff) ({ moduleNamePaths :: Array Trie.Path, ffis :: Array String })
         when true m = m
-        when false _ = moduleNamePaths
+        when false _ = state
 
         whenM
           :: Aff (Effects eff) Boolean
-          -> Aff (Effects eff) (Array Trie.Path)
-          -> Aff (Effects eff) (Array Trie.Path)
+          -> Aff (Effects eff) ({ moduleNamePaths :: Array Trie.Path, ffis :: Array String })
+          -> Aff (Effects eff) ({ moduleNamePaths :: Array Trie.Path, ffis :: Array String })
         whenM mb m = do
           b <- mb
           when b m
@@ -85,24 +89,32 @@ toPaths = foldr acc (pure [])
           trace ("filepath" <> show filepath) \_ ->
 
           whenM (exists filepath) do
+            -- moduleNamePaths' <- moduleNamePaths
             coreFn <- readTextFile UTF8 filepath
             case runExcept (moduleFromJSON coreFn) of
               Left e ->
                 -- trace ("Left: " <> show e) \_->
-                moduleNamePaths
-              Right { module: (Module module_) } ->
+                state
+              Right { module: (Module module_) } -> do
                 -- trace ("Right: " <> show module_.moduleForeign) \_ ->
                 let
-                  ffiPath = (_ <.> "swift") <$> (parseRelFile $ unwrap module_.modulePath)
-                  foo = trace ("ffiPath: " <> show (map printPath (ffiPath >>= sandbox currentDir))) \_ -> unit
-                -- let
                   { moduleForeign, moduleName } = module_
                   hasForeign = not Array.null moduleForeign
+                  ffiPath = if hasForeign then map (_ <.> "swift") (sandbox currentDir =<< parseRelFile (unwrap module_.modulePath)) else Nothing
+                  foo = trace ("ffiPath: " <> show (map printPath ffiPath)) \_ -> unit
+
+                ffi <- traverse (printPath >>> readTextFile UTF8) ffiPath
+                let bar = trace ("ffi: " <> show ffi) \_ -> unit
+
+                let
                   moduleNamePath = Trie.Path $ map unwrap $ unwrap moduleName
                   foreignNamePaths = guard hasForeign [moduleNamePath <> Trie.Path ["_Foreign"]]
                   namePaths = [moduleNamePath] <> foreignNamePaths
-                in
-                  pure namePaths <> moduleNamePaths
+
+                pure $
+                  { moduleNamePaths: namePaths <> moduleNamePaths
+                  , ffis: (maybe [] Array.singleton ffi) <> ffis
+                  }
 
 outputDir :: DirName
 outputDir = DirName "output"
@@ -111,6 +123,6 @@ outputDir = DirName "output"
 main :: forall eff. Eff (Effects eff) (Fiber (Effects eff) Unit)
 main = launchAff do
   files <- readdir $ runDirName outputDir
-  paths <- toPaths files
-  let trie = fromPaths paths
-  liftEff $ dryRun trie
+  { moduleNamePaths, ffis } <- toPaths files
+  let trie = fromPaths moduleNamePaths
+  liftEff $ dryRun trie ffis
