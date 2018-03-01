@@ -101,7 +101,7 @@ toPaths = foldr acc (pure [])
 outputDir :: DirName
 outputDir = DirName "output"
 
--- pulp run -- --dump-corefn
+-- pulp build -- --dump-corefn
 main :: forall eff. Eff (Effects eff) (Fiber (Effects eff) Unit)
 main = launchAff do
   files <- readdir $ runDirName outputDir
