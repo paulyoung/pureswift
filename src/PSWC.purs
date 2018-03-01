@@ -82,7 +82,7 @@ toPaths = foldr acc (pure [])
           let filepath = printPath $ moduleDir </> file "corefn.json"
 
           whenM (exists filepath) do
-            coreFn <- readTextFile UTF8 $ filepath
+            coreFn <- readTextFile UTF8 filepath
             case runExcept (moduleFromJSON coreFn) of
               Left e ->
                 -- trace ("Left: " <> show e) \_->
