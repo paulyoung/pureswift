@@ -16,10 +16,11 @@ import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..), maybe)
 import Data.Monoid (guard)
 import Data.Newtype (unwrap)
-import Data.Path.Pathy (Dir, DirName(DirName), Path, Rel, Sandboxed, dir, dir', file, printPath, runDirName, (</>))
+import Data.Path.Pathy (Dir, DirName(DirName), Path, Rel, Sandboxed, currentDir, dir, dir', file, parseRelFile, printPath, runDirName, sandbox, (<.>), (</>))
 import Data.String as S
 import Data.Trie (Trie(..), fromPaths)
 import Data.Trie as Trie
+import Debug.Trace (trace)
 import Node.Encoding (Encoding(..))
 import Node.FS (FS)
 import Node.FS.Aff (exists, readTextFile, readdir, stat)
@@ -52,7 +53,7 @@ toPaths = foldr acc (pure [])
       :: String
       -> Aff (Effects eff) (Array Trie.Path)
       -> Aff (Effects eff) (Array Trie.Path)
-    acc filename modulePaths = do
+    acc filename moduleNamePaths = do
       let
         moduleDir :: Path Rel Dir Sandboxed
         moduleDir = dir' outputDir </> dir filename
@@ -65,7 +66,7 @@ toPaths = foldr acc (pure [])
           -> Aff (Effects eff) (Array Trie.Path)
           -> Aff (Effects eff) (Array Trie.Path)
         when true m = m
-        when false _ = modulePaths
+        when false _ = moduleNamePaths
 
         whenM
           :: Aff (Effects eff) Boolean
@@ -80,23 +81,28 @@ toPaths = foldr acc (pure [])
 
         when (isDirectory stat) do
           let filepath = printPath $ moduleDir </> file "corefn.json"
+          trace ("------") \_ ->
+          trace ("filepath" <> show filepath) \_ ->
 
           whenM (exists filepath) do
             coreFn <- readTextFile UTF8 filepath
             case runExcept (moduleFromJSON coreFn) of
               Left e ->
                 -- trace ("Left: " <> show e) \_->
-                modulePaths
+                moduleNamePaths
               Right { module: (Module module_) } ->
                 -- trace ("Right: " <> show module_.moduleForeign) \_ ->
                 let
+                  ffiPath = (_ <.> "swift") <$> (parseRelFile $ unwrap module_.modulePath)
+                  foo = trace ("ffiPath: " <> show (map printPath (ffiPath >>= sandbox currentDir))) \_ -> unit
+                -- let
                   { moduleForeign, moduleName } = module_
                   hasForeign = not Array.null moduleForeign
-                  modulePath = Trie.Path $ map unwrap $ unwrap moduleName
-                  foreignPaths = guard hasForeign [modulePath <> Trie.Path ["_Foreign"]]
-                  paths = [modulePath] <> foreignPaths
+                  moduleNamePath = Trie.Path $ map unwrap $ unwrap moduleName
+                  foreignNamePaths = guard hasForeign [moduleNamePath <> Trie.Path ["_Foreign"]]
+                  namePaths = [moduleNamePath] <> foreignNamePaths
                 in
-                  pure paths <> modulePaths
+                  pure namePaths <> moduleNamePaths
 
 outputDir :: DirName
 outputDir = DirName "output"
