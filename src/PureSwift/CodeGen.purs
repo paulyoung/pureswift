@@ -23,7 +23,7 @@ import Data.Newtype (unwrap)
 import Data.Tuple (Tuple(..))
 import PureSwift.AST (AccessMod(..), Attribute(..), Decl(..), DeclMod(..), Exp(..), FunctionTypeArg(..), Ident(..), Lit(..), Statement(..), Type(..))
 
-moduleToSwift :: Module Unit -> Decl
+moduleToSwift :: forall a. Module a -> Decl
 moduleToSwift (Module mod) = TopLevel statements
   where
   decls :: List Decl
@@ -38,7 +38,7 @@ moduleToSwift (Module mod) = TopLevel statements
   moduleNameToSwift :: ModuleName -> Ident
   moduleNameToSwift (ModuleName mn) = Ident $ intercalate "." (unwrap <$> mn)
 
-  declToSwift :: Bind Unit -> List Decl
+  declToSwift :: Bind a -> List Decl
   declToSwift (NonRec a i e) = List.singleton $ bindingToSwift (Tuple (Tuple a i) e)
   declToSwift (Rec bs) = bindingToSwift <$> List.fromFoldable bs
 
@@ -75,7 +75,7 @@ moduleToSwift (Module mod) = TopLevel statements
     BooleanLit _ -> Just BoolType
     _ -> Nothing
 
-  bindingToSwift :: Tuple (Tuple Unit CoreFn.Ident) (CoreFn.Expr Unit) -> Decl
+  bindingToSwift :: Tuple (Tuple a CoreFn.Ident) (CoreFn.Expr a) -> Decl
   bindingToSwift (Tuple (Tuple _ ident) expr) =
     Constant (accessMod : Static : Nil) (identToSwift ident) (expToType' removeAllArgLabels exp) exp
     where
@@ -93,7 +93,7 @@ moduleToSwift (Module mod) = TopLevel statements
   identToSwift (CoreFn.GenIdent s i) = Ident $ fromMaybe "" s <> toStringAs decimal i
   identToSwift CoreFn.UnusedIdent = Ident "/* FIXME: UnusedIdent */"
 
-  exprToSwift :: CoreFn.Expr Unit -> Exp
+  exprToSwift :: CoreFn.Expr a -> Exp
   exprToSwift (CoreFn.Literal _ l) = Literal $ literalToSwift l
   exprToSwift (Constructor _ tn cn fs) = Literal $ StringLit "/* FIXME: Constructor Exp */"
   exprToSwift (Accessor _ s e) = Literal $ StringLit "/* FIXME: Accessor Exp */"
@@ -127,7 +127,7 @@ moduleToSwift (Module mod) = TopLevel statements
   exprToSwift (Case _ es cs) = Literal $ StringLit "/* FIXME: Case Exp */"
   exprToSwift (Let _ bs e) = Literal $ StringLit "/* FIXME: Let Exp */"
 
-  literalToSwift :: CoreFn.Literal (Expr Unit) -> Lit
+  literalToSwift :: CoreFn.Literal (Expr a) -> Lit
   literalToSwift (CoreFn.NumericLiteral x) = either IntLit FloatLit x
   literalToSwift (CoreFn.StringLiteral x) = StringLit x
   literalToSwift (CoreFn.CharLiteral x) = CharLit x
