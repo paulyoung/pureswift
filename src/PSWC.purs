@@ -20,7 +20,7 @@ import Data.String as S
 import Data.Traversable (traverse)
 import Data.Trie (Trie(..), fromPaths)
 import Data.Trie as Trie
-import Debug.Trace (trace)
+-- import Debug.Trace (trace)
 import Node.Encoding (Encoding(..))
 import Node.FS (FS)
 import Node.FS.Aff (exists, readTextFile, readdir, stat)
@@ -103,17 +103,18 @@ toPaths = foldr acc (pure { moduleNamePaths: [], ffis: "", codegens: "" })
                 -- trace ("Left: " <> show e) \_->
                 state
               Right { module: module_ } -> do
-                -- trace ("Right: " <> show module_.moduleForeign) \_ ->
                 let
                   { moduleForeign, moduleName, modulePath } = unwrap module_
                   codegen = prettyPrint $ moduleToSwift module_
+                  -- codegen = prettyPrint $ moduleToSwift $ trace ("module_: " <> show module_) \_ -> module_
+                  -- codegen = prettyPrint $ trace (show $ moduleToSwift module_) \_ -> moduleToSwift module_
 
                   hasForeign = not Array.null moduleForeign
                   ffiPath = if hasForeign then map (_ <.> "swift") (sandbox currentDir =<< parseRelFile (unwrap modulePath)) else Nothing
-                  foo = trace ("ffiPath: " <> show (map printPath ffiPath)) \_ -> unit
+                  -- foo = trace ("ffiPath: " <> show (map printPath ffiPath)) \_ -> unit
 
                 ffi <- traverse (printPath >>> readTextFile UTF8) ffiPath
-                let bar = trace ("ffi: " <> show ffi) \_ -> unit
+                -- let bar = trace ("ffi: " <> show ffi) \_ -> unit
 
                 let
                   moduleNamePath = Trie.Path $ map unwrap $ unwrap moduleName
