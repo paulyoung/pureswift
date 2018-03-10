@@ -20,7 +20,7 @@ import Data.String as S
 import Data.Traversable (traverse)
 import Data.Trie (Trie(..), fromPaths)
 import Data.Trie as Trie
--- import Debug.Trace (trace)
+import Debug.Trace (trace)
 import Node.Encoding (Encoding(..))
 import Node.FS (FS)
 import Node.FS.Aff (exists, readTextFile, readdir, stat)
@@ -57,8 +57,13 @@ type State =
   }
 
 toPaths :: forall eff. Array FilePath -> Aff (Effects eff) State
-toPaths = foldr acc (pure { moduleNamePaths: [], ffis: "", codegens: "" })
+-- toPaths filenames = foldr acc (pure { moduleNamePaths: [], ffis: "", codegens: "" }) filtered
+toPaths filenames = foldr acc (pure { moduleNamePaths: [], ffis: "", codegens: "" }) $ trace (show filtered) \_ -> filtered
   where
+    filtered :: Array FilePath
+    filtered = flip Array.filter filenames \filename ->
+      maybe false (S.singleton >>> (_ /= ".")) $ S.charAt 0 filename
+
     acc
       :: String
       -> Aff (Effects eff) State
@@ -68,9 +73,6 @@ toPaths = foldr acc (pure { moduleNamePaths: [], ffis: "", codegens: "" })
       let
         moduleDir :: Path Rel Dir Sandboxed
         moduleDir = dir' outputDir </> dir filename
-
-        hidden :: Boolean
-        hidden = maybe false (S.singleton >>> (_ == ".")) $ S.charAt 0 filename
 
         when
           :: Boolean
@@ -87,45 +89,47 @@ toPaths = foldr acc (pure { moduleNamePaths: [], ffis: "", codegens: "" })
           b <- mb
           when b m
 
-      when (not hidden) do
-        stat <- stat $ printPath moduleDir
+      stat <- stat $ printPath moduleDir
 
-        when (isDirectory stat) do
-          let filepath = printPath $ moduleDir </> file "corefn.json"
-          -- trace ("------") \_ ->
-          -- trace ("filepath" <> show filepath) \_ ->
+      when (isDirectory stat) do
+        let filepath = printPath $ moduleDir </> file "corefn.json"
+        trace ("------") \_ ->
+        trace ("filepath" <> show filepath) \_ ->
 
-          whenM (exists filepath) do
-            -- moduleNamePaths' <- moduleNamePaths
-            coreFn <- readTextFile UTF8 filepath
-            case runExcept (moduleFromJSON coreFn) of
-              Left e ->
-                -- trace ("Left: " <> show e) \_->
-                state
-              Right { module: module_ } -> do
-                let
-                  { moduleForeign, moduleName, modulePath } = unwrap module_
-                  codegen = prettyPrint $ moduleToSwift module_
-                  -- codegen = prettyPrint $ moduleToSwift $ trace ("module_: " <> show module_) \_ -> module_
-                  -- codegen = prettyPrint $ trace (show $ moduleToSwift module_) \_ -> moduleToSwift module_
+        whenM (exists filepath) do
+          -- moduleNamePaths' <- moduleNamePaths
+          coreFn <- readTextFile UTF8 filepath
+          case runExcept (moduleFromJSON coreFn) of
+            Left e ->
+              -- trace ("Left: " <> show e) \_->
+              state
+            Right { module: module_ } -> do
+              let
+                { moduleForeign, moduleName, modulePath } = unwrap module_
+                codegen = prettyPrint $ moduleToSwift module_
 
-                  hasForeign = not Array.null moduleForeign
-                  ffiPath = if hasForeign then map (_ <.> "swift") (sandbox currentDir =<< parseRelFile (unwrap modulePath)) else Nothing
-                  -- foo = trace ("ffiPath: " <> show (map printPath ffiPath)) \_ -> unit
+                -- decls = moduleToSwift $ trace ("module_: " <> show module_) \_ -> module_
+                -- codegen = prettyPrint $ trace ("decls: " <> show decls) \_ -> decls
+                -- codegen = trace ("decls: " <> show decls) \_ -> ""
 
-                ffi <- traverse (printPath >>> readTextFile UTF8) ffiPath
-                -- let bar = trace ("ffi: " <> show ffi) \_ -> unit
+                hasForeign = not Array.null moduleForeign
+                ffiPath = if hasForeign then map (_ <.> "swift") (sandbox currentDir =<< parseRelFile (unwrap modulePath)) else Nothing
+                -- foo = trace ("ffiPath: " <> show (map printPath ffiPath)) \_ -> unit
 
-                let
-                  moduleNamePath = Trie.Path $ map unwrap $ unwrap moduleName
-                  foreignNamePaths = guard hasForeign [moduleNamePath <> Trie.Path ["_Foreign"]]
-                  namePaths = [moduleNamePath] <> foreignNamePaths
+              ffi <- traverse (printPath >>> readTextFile UTF8) ffiPath
+              -- let bar = trace ("ffi: " <> show ffi) \_ -> unit
 
-                pure $
-                  { moduleNamePaths: namePaths <> moduleNamePaths
-                  , ffis: fromMaybe "" ffi <> "\n" <> ffis
-                  , codegens: codegen <> "\n" <> codegens
-                  }
+              let
+                moduleNamePath = Trie.Path $ map unwrap $ unwrap moduleName
+                foreignNamePaths = guard hasForeign [moduleNamePath <> Trie.Path ["_Foreign"]]
+                namePaths = [moduleNamePath] <> foreignNamePaths
+
+              pure $
+                { moduleNamePaths: namePaths <> moduleNamePaths
+                , ffis: fromMaybe "" ffi <> "\n" <> ffis
+                , codegens: codegen <> "\n" <> codegens
+                -- , codegens: (trace ("codegen: " <> codegen) \_ -> codegen) <> "\n" <> codegens
+                }
 
 outputDir :: DirName
 outputDir = DirName "output"
