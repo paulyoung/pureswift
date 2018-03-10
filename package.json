@@ -1,6 +1,6 @@
 {
   "name": "pureswift",
   "bin": {
-    "psw": "psw"
+    "pswc": "pswc"
   }
 }
