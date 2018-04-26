@@ -11,11 +11,28 @@ import Data.Map as Map
 import Data.Maybe (Maybe(Just, Nothing), maybe, maybe')
 import Data.String as String
 import Data.Tuple (Tuple(..))
-import Prettier.Printer (DOC, bracket, group, line, nil, pretty, spread, stack, text)
+import Prettier.Printer (DOC, line, nest, nil, pretty, spread, stack, text)
 import PureSwift.AST (AccessMod(..), Attribute(..), Decl(..), DeclMod(..), Exp(..), FunctionTypeArg(..), Ident(..), Lit(..), Statement(..), Type(..))
 
+-- | Alternative pretty-printing functions so that we never `flatten` line
+-- | breaks into spaces. This should be equivalent to providing a width of 0 to
+-- | `pretty`, except much less expensive. `pretty 0` is known to hang on
+-- | non-trivial input.
+group :: DOC -> DOC
+group = id
+
+bracket' :: Int -> String -> DOC -> String -> DOC
+bracket' i l x r = group $ text l <> nest i (line <> x) <> line <> text r
+
+bracket :: String -> DOC -> String -> DOC
+bracket = bracket' 2
+
+
+-- | The width provided to `pretty` should be irrelevant since we never flatten
+-- | line breaks. Ordinarily, a width of `top` would place everything on a
+-- | single line, so using it is a good way to verify the intended behavior.
 prettyPrint :: Decl -> String
-prettyPrint = pretty 0 <<< ppDecl
+prettyPrint = pretty top <<< ppDecl
 
 ppDecl :: Decl -> DOC
 ppDecl (Enum ms i ds) = ppContainerDecl "enum" ms i ds
