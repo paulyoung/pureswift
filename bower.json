@@ -15,7 +15,8 @@
     "purescript-maps": "^3.6.0",
     "purescript-node-fs-aff": "^5.0.0",
     "purescript-pathy": "^4.1.0",
-    "purescript-trie": "^0.0.2"
+    "purescript-trie": "^0.0.2",
+    "purescript-unicode": "^3.0.2"
   },
   "devDependencies": {
     "purescript-psci-support": "^3.0.0",

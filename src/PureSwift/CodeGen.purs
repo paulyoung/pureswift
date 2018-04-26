@@ -10,16 +10,19 @@ import CoreFn.Ident (Ident(..)) as CoreFn
 import CoreFn.Literal (Literal(..)) as CoreFn
 import CoreFn.Module (Module(..))
 import CoreFn.Names (ModuleName(..), Qualified(..))
-import Data.Array (intercalate)
+import Data.Array (concat, intercalate)
 import Data.Bifunctor (bimap)
+import Data.Char (toCharCode)
+import Data.Char.Unicode (isAlphaNum)
 import Data.Either (either)
-import Data.Foldable (elem, foldr)
+import Data.Foldable (elem, foldMap, foldr)
 import Data.Int (decimal, toStringAs)
 import Data.List (List(..), (:))
 import Data.List as List
 import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (unwrap)
+import Data.String (singleton, toCharArray)
 import Data.Tuple (Tuple(..))
 import PureSwift.AST (AccessMod(..), Attribute(..), Decl(..), DeclMod(..), Exp(..), FunctionTypeArg(..), Ident(..), Lit(..), Statement(..), Type(..))
 
@@ -89,9 +92,175 @@ moduleToSwift (Module mod) = TopLevel statements
     exp = exprToSwift expr
 
   identToSwift :: CoreFn.Ident -> Ident
-  identToSwift (CoreFn.Ident ident) = Ident ident
-  identToSwift (CoreFn.GenIdent s i) = Ident $ fromMaybe "" s <> toStringAs decimal i
+  identToSwift (CoreFn.Ident ident) = Ident $ properToSwift ident
+  identToSwift (CoreFn.GenIdent s i) = Ident $ fromMaybe "" s <> toStringAs decimal i -- FIXME
   identToSwift CoreFn.UnusedIdent = Ident "/* FIXME: UnusedIdent */"
+
+  properToSwift :: String -> String
+  properToSwift name
+    | nameIsSwiftReserved name = "`" <> name <> "`"
+    | otherwise = foldMap identCharToString $ toCharArray name
+
+  -- | Attempts to find a human-readable name for a symbol, if none has been
+  -- | specified returns the ordinal value.
+  identCharToString :: Char -> String
+  identCharToString c | isAlphaNum c = singleton c
+  identCharToString '_' = "_"
+  identCharToString '.' = "$dot"
+  identCharToString '$' = "$dollar"
+  identCharToString '~' = "$tilde"
+  identCharToString '=' = "$eq"
+  identCharToString '<' = "$less"
+  identCharToString '>' = "$greater"
+  identCharToString '!' = "$bang"
+  identCharToString '#' = "$hash"
+  identCharToString '%' = "$percent"
+  identCharToString '^' = "$up"
+  identCharToString '&' = "$amp"
+  identCharToString '|' = "$bar"
+  identCharToString '*' = "$times"
+  identCharToString '/' = "$div"
+  identCharToString '+' = "$plus"
+  identCharToString '-' = "$minus"
+  identCharToString ':' = "$colon"
+  identCharToString '\\' = "$bslash"
+  identCharToString '?' = "$qmark"
+  identCharToString '@' = "$at"
+  identCharToString '\'' = "$prime"
+  identCharToString c = "$" <> (toStringAs decimal $ toCharCode c)
+
+  -- | Checks whether an identifier name is reserved in Swift.
+  nameIsSwiftReserved :: String -> Boolean
+  nameIsSwiftReserved name = name `elem` swiftAnyReserved
+
+  swiftAnyReserved :: Array String
+  swiftAnyReserved =
+    concat
+      [ swiftDeclKeywords
+      , swiftStatementKeywords
+      , swiftExprTypeKeywords
+      , swiftPatternKeywords
+      , swiftNumberSignKeywords
+      , swiftContextualKeywords
+      ]
+
+  swiftDeclKeywords :: Array String
+  swiftDeclKeywords =
+    [ "associatedtype"
+    , "class"
+    , "deinit"
+    , "enum"
+    , "extension"
+    , "fileprivate"
+    , "func"
+    , "import"
+    , "init"
+    , "inout"
+    , "internal"
+    , "let"
+    , "open"
+    , "operator"
+    , "private"
+    , "protocol"
+    , "public"
+    , "static"
+    , "struct"
+    , "subscript"
+    , "typealias"
+    , "var"
+    ]
+
+  swiftStatementKeywords :: Array String
+  swiftStatementKeywords =
+    [ "break"
+    , "case"
+    , "continue"
+    , "default"
+    , "defer"
+    , "do"
+    , "else"
+    , "fallthrough"
+    , "for"
+    , "guard"
+    , "if"
+    , "in"
+    , "repeat"
+    , "return"
+    , "switch"
+    , "where"
+    , "while"
+    ]
+
+  swiftExprTypeKeywords :: Array String
+  swiftExprTypeKeywords =
+    [ "as"
+    , "Any"
+    , "catch"
+    , "false"
+    , "is"
+    , "nil"
+    , "rethrows"
+    , "super"
+    , "self"
+    , "Self"
+    , "throw"
+    , "throws"
+    , "true"
+    , "try"
+    ]
+
+  swiftPatternKeywords :: Array String
+  swiftPatternKeywords =
+    [ "_"
+    ]
+
+  swiftNumberSignKeywords :: Array String
+  swiftNumberSignKeywords =
+    [ "#available"
+    , "#colorLiteral"
+    , "#column"
+    , "#else"
+    , "#elseif"
+    , "#endif"
+    , "#file"
+    , "#fileLiteral"
+    , "#function"
+    , "#if"
+    , "#imageLiteral"
+    , "#line"
+    , "#selector"
+    , "#sourceLocation"
+    ]
+
+  swiftContextualKeywords :: Array String
+  swiftContextualKeywords =
+    [ "associativity"
+    , "convenience"
+    , "dynamic"
+    , "didSet"
+    , "final"
+    , "get"
+    , "infix"
+    , "indirect"
+    , "lazy"
+    , "left"
+    , "mutating"
+    , "none"
+    , "nonmutating"
+    , "optional"
+    , "override"
+    , "postfix"
+    , "precedence"
+    , "prefix"
+    , "Protocol"
+    , "required"
+    , "right"
+    , "set"
+    , "Type"
+    , "unowned"
+    , "weak"
+    , "willSet"
+    ]
 
   exprToSwift :: CoreFn.Expr a -> Exp
   exprToSwift (CoreFn.Literal _ l) = Literal $ literalToSwift l

@@ -665,3 +665,131 @@ spec = describe "CodeGen" do
     actualDecl `shouldEqual` expectedDecl
     actualString `shouldEqual` expectedString
 
+  describe "Reserved" do
+    it "Keywords" do
+      let
+        booleanLiteral = CoreFn.Literal unit $ CoreFn.BooleanLiteral true
+
+        moduleComments = []
+
+        moduleName = ModuleName [ ProperName "Keywords" ]
+
+        modulePath = FilePath "src/Keywords.purs"
+
+        moduleImports =
+          [ ModuleImport
+              { ann: ssAnn $ SourceSpan
+                  { spanName: unwrap modulePath
+                  , spanStart: SourcePos { sourcePosLine: 1, sourcePosColumn: 1 }
+                  , spanEnd: SourcePos { sourcePosLine: 3, sourcePosColumn: 8 }
+                  }
+              , moduleName: ModuleName [ ProperName "Prim" ]
+              }
+          ]
+
+        moduleExports = []
+
+        moduleForeign = []
+
+        moduleDecls =
+          [ NonRec unit (CoreFn.Ident "class") booleanLiteral
+          ]
+
+        mod = Module
+          { moduleComments
+          , moduleName
+          , modulePath
+          , moduleImports
+          , moduleExports
+          , moduleForeign
+          , moduleDecls
+          }
+
+        actualDecl = moduleToSwift mod
+        actualString = prettyPrint actualDecl
+
+        declMods = (AccessModifier Internal : Static : Nil)
+
+        booleanDecl = Constant declMods (Ident "`class`") (Just BoolType) (Literal $ BooleanLit true)
+
+        extension = Extension (AccessModifier Public : Nil) (Ident "Keywords")
+          ( booleanDecl
+          : Nil
+          )
+
+        expectedDecl = TopLevel
+          ( Declaration extension
+          : Nil
+          )
+
+        expectedString = ""
+          <> "public extension Keywords {\n"
+          <> "  internal static let `class`: Bool = true\n"
+          <> "}"
+
+      actualDecl `shouldEqual` expectedDecl
+      actualString `shouldEqual` expectedString
+
+    it "Characters" do
+      let
+        booleanLiteral = CoreFn.Literal unit $ CoreFn.BooleanLiteral true
+
+        moduleComments = []
+
+        moduleName = ModuleName [ ProperName "Characters" ]
+
+        modulePath = FilePath "src/Characters.purs"
+
+        moduleImports =
+          [ ModuleImport
+              { ann: ssAnn $ SourceSpan
+                  { spanName: unwrap modulePath
+                  , spanStart: SourcePos { sourcePosLine: 1, sourcePosColumn: 1 }
+                  , spanEnd: SourcePos { sourcePosLine: 3, sourcePosColumn: 8 }
+                  }
+              , moduleName: ModuleName [ ProperName "Prim" ]
+              }
+          ]
+
+        moduleExports = []
+
+        moduleForeign = []
+
+        moduleDecls =
+          [ NonRec unit (CoreFn.Ident "foo'") booleanLiteral
+          ]
+
+        mod = Module
+          { moduleComments
+          , moduleName
+          , modulePath
+          , moduleImports
+          , moduleExports
+          , moduleForeign
+          , moduleDecls
+          }
+
+        actualDecl = moduleToSwift mod
+        actualString = prettyPrint actualDecl
+
+        declMods = (AccessModifier Internal : Static : Nil)
+
+        booleanDecl = Constant declMods (Ident "foo$prime") (Just BoolType) (Literal $ BooleanLit true)
+
+        extension = Extension (AccessModifier Public : Nil) (Ident "Characters")
+          ( booleanDecl
+          : Nil
+          )
+
+        expectedDecl = TopLevel
+          ( Declaration extension
+          : Nil
+          )
+
+        expectedString = ""
+          <> "public extension Characters {\n"
+          <> "  internal static let foo$prime: Bool = true\n"
+          <> "}"
+
+      actualDecl `shouldEqual` expectedDecl
+      actualString `shouldEqual` expectedString
