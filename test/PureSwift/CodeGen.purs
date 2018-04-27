@@ -81,12 +81,13 @@ spec = describe "CodeGen" do
       extension = Extension (AccessModifier Public : Nil) (Ident "Exports") (public : internal : Nil)
 
       actualDecl = moduleToSwift mod
-      actualString = prettyPrint actualDecl
+      actualString = prettyPrint <$> actualDecl
 
-      expectedDecl = TopLevel
-        ( Declaration extension
-        : Nil
-        )
+      expectedDecl =
+        TopLevel
+          ( Declaration extension
+          : Nil
+          )
 
       expectedString = ""
         <> "public extension Exports {\n"
@@ -94,8 +95,8 @@ spec = describe "CodeGen" do
         <> "  internal static let notExported: String = \"not exported\"\n"
         <> "}"
 
-    actualDecl `shouldEqual` expectedDecl
-    actualString `shouldEqual` expectedString
+    actualDecl `shouldEqual` Right expectedDecl
+    actualString `shouldEqual` Right expectedString
 
   it "Hello World" do
     let
@@ -166,7 +167,7 @@ spec = describe "CodeGen" do
         }
 
       actualDecl = moduleToSwift mod
-      actualString = prettyPrint actualDecl
+      actualString = prettyPrint <$> actualDecl
 
       log = ExplicitMember (Identifier $ Ident "Control.Monad.Eff.Console") (Ident "log")
       functionCall = FunctionCall log (Literal (StringLit "Hello world!") : Nil)
@@ -183,8 +184,8 @@ spec = describe "CodeGen" do
         <> "  public static let main = Control.Monad.Eff.Console.log(\"Hello world!\")\n"
         <> "}"
 
-    actualDecl `shouldEqual` expectedDecl
-    actualString `shouldEqual` expectedString
+    actualDecl `shouldEqual` Right expectedDecl
+    actualString `shouldEqual` Right expectedString
 
   describe "Literals" do
     it "Int, Float, String, Char, Boolean" do
@@ -235,7 +236,7 @@ spec = describe "CodeGen" do
           }
 
         actualDecl = moduleToSwift mod
-        actualString = prettyPrint actualDecl
+        actualString = prettyPrint <$> actualDecl
 
         declMods = (AccessModifier Internal : Static : Nil)
 
@@ -268,8 +269,8 @@ spec = describe "CodeGen" do
           <> "  internal static let boolean: Bool = true\n"
           <> "}"
 
-      actualDecl `shouldEqual` expectedDecl
-      actualString `shouldEqual` expectedString
+      actualDecl `shouldEqual` Right expectedDecl
+      actualString `shouldEqual` Right expectedString
 
     it "array" do
       let
@@ -323,7 +324,7 @@ spec = describe "CodeGen" do
           }
 
         actualDecl = moduleToSwift mod
-        actualString = prettyPrint actualDecl
+        actualString = prettyPrint <$> actualDecl
 
         declMods = (AccessModifier Internal : Static : Nil)
 
@@ -364,8 +365,8 @@ spec = describe "CodeGen" do
           <> "  ]\n"
           <> "}"
 
-      actualDecl `shouldEqual` expectedDecl
-      actualString `shouldEqual` expectedString
+      actualDecl `shouldEqual` Right expectedDecl
+      actualString `shouldEqual` Right expectedString
 
     it "dict" do
       let
@@ -419,7 +420,7 @@ spec = describe "CodeGen" do
           }
 
         actualDecl = moduleToSwift mod
-        actualString = prettyPrint actualDecl
+        actualString = prettyPrint <$> actualDecl
 
         declMods = (AccessModifier Internal : Static : Nil)
 
@@ -458,8 +459,8 @@ spec = describe "CodeGen" do
           <> "  ]\n"
           <> "}"
 
-      actualDecl `shouldEqual` expectedDecl
-      actualString `shouldEqual` expectedString
+      actualDecl `shouldEqual` Right expectedDecl
+      actualString `shouldEqual` Right expectedString
 
   it "Mutually recursive bindings" do
     let
@@ -517,7 +518,7 @@ spec = describe "CodeGen" do
         }
 
       actualDecl = moduleToSwift mod
-      actualString = prettyPrint actualDecl
+      actualString = prettyPrint <$> actualDecl
 
       declMods = (AccessModifier Internal : Static : Nil)
 
@@ -558,8 +559,8 @@ spec = describe "CodeGen" do
         <> "  }\n"
         <> "}"
 
-    actualDecl `shouldEqual` expectedDecl
-    actualString `shouldEqual` expectedString
+    actualDecl `shouldEqual` Right expectedDecl
+    actualString `shouldEqual` Right expectedString
 
   it "higher-order functions" do
     let
@@ -605,7 +606,7 @@ spec = describe "CodeGen" do
         }
 
       actualDecl = moduleToSwift mod
-      actualString = prettyPrint actualDecl
+      actualString = prettyPrint <$> actualDecl
 
       fArgs =
         ( FunctionTypeArg (Just $ Ident "_") (Just $ Ident "f") (Escaping : Nil) fReturnType
@@ -662,8 +663,8 @@ spec = describe "CodeGen" do
         <> "  }\n"
         <> "}"
 
-    actualDecl `shouldEqual` expectedDecl
-    actualString `shouldEqual` expectedString
+    actualDecl `shouldEqual` Right expectedDecl
+    actualString `shouldEqual` Right expectedString
 
   describe "Reserved" do
     it "Keywords" do
@@ -706,7 +707,7 @@ spec = describe "CodeGen" do
           }
 
         actualDecl = moduleToSwift mod
-        actualString = prettyPrint actualDecl
+        actualString = prettyPrint <$> actualDecl
 
         declMods = (AccessModifier Internal : Static : Nil)
 
@@ -727,8 +728,8 @@ spec = describe "CodeGen" do
           <> "  internal static let `class`: Bool = true\n"
           <> "}"
 
-      actualDecl `shouldEqual` expectedDecl
-      actualString `shouldEqual` expectedString
+      actualDecl `shouldEqual` Right expectedDecl
+      actualString `shouldEqual` Right expectedString
 
     it "Characters" do
       let
@@ -770,7 +771,7 @@ spec = describe "CodeGen" do
           }
 
         actualDecl = moduleToSwift mod
-        actualString = prettyPrint actualDecl
+        actualString = prettyPrint <$> actualDecl
 
         declMods = (AccessModifier Internal : Static : Nil)
 
@@ -791,5 +792,5 @@ spec = describe "CodeGen" do
           <> "  internal static let foo$prime: Bool = true\n"
           <> "}"
 
-      actualDecl `shouldEqual` expectedDecl
-      actualString `shouldEqual` expectedString
+      actualDecl `shouldEqual` Right expectedDecl
+      actualString `shouldEqual` Right expectedString

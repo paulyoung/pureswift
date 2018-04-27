@@ -9,9 +9,12 @@ import Control.Monad.Eff.Console (CONSOLE, log)
 import Control.Monad.Except (runExcept)
 import CoreFn.FromJSON (moduleFromJSON)
 import Data.Array as Array
+import Data.Bifunctor (lmap)
 import Data.Either (Either(..))
 import Data.Foldable (foldr, for_)
+import Data.Foreign (renderForeignError)
 import Data.List (List(..), (:))
+import Data.List.NonEmpty as NonEmptyList
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Monoid (guard)
 import Data.Newtype (unwrap)
@@ -99,14 +102,26 @@ toPaths filenames = foldr acc (pure { moduleNamePaths: [], ffis: "", codegens: "
         whenM (exists filepath) do
           -- moduleNamePaths' <- moduleNamePaths
           coreFn <- readTextFile UTF8 filepath
-          case runExcept (moduleFromJSON coreFn) of
+          let
+            psModule = runExcept $ moduleFromJSON coreFn
+
+            -- Convert `ForeignError` to `String` to unify with Swift errors
+            psModule' = lmap (map renderForeignError) psModule
+
+            -- TODO: move `NonEmptyList` inside pf `moduleToSwift`, to track
+            -- multiple errors at once
+            moduleToSwift' = moduleToSwift >>> lmap NonEmptyList.singleton
+
+            swiftModule = map _.module psModule' >>= moduleToSwift'
+            modules = { psModule: _, swiftModule: _ } <$> psModule' <*> swiftModule
+          case modules of
             Left e ->
               -- trace ("Left: " <> show e) \_->
               state
-            Right { module: module_ } -> do
+            Right { psModule: ps, swiftModule: swift } -> do
               let
-                { moduleForeign, moduleName, modulePath } = unwrap module_
-                codegen = prettyPrint $ moduleToSwift module_
+                { moduleForeign, moduleName, modulePath } = unwrap ps.module
+                codegen = prettyPrint swift
 
                 -- decls = moduleToSwift $ trace ("module_: " <> show module_) \_ -> module_
                 -- codegen = prettyPrint $ trace ("decls: " <> show decls) \_ -> decls

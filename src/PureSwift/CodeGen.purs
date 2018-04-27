@@ -11,10 +11,10 @@ import CoreFn.Literal (Literal(..)) as CoreFn
 import CoreFn.Module (Module(..))
 import CoreFn.Names (ModuleName(..), Qualified(..))
 import Data.Array (concat, intercalate)
-import Data.Bifunctor (bimap)
+import Data.Bitraversable (bitraverse)
 import Data.Char (toCharCode)
 import Data.Char.Unicode (isAlphaNum)
-import Data.Either (either)
+import Data.Either (Either(..), either)
 import Data.Foldable (elem, foldMap, foldr)
 import Data.Int (decimal, toStringAs)
 import Data.List (List(..), (:))
@@ -23,27 +23,32 @@ import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (unwrap)
 import Data.String (singleton, toCharArray)
+import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import PureSwift.AST (AccessMod(..), Attribute(..), Decl(..), DeclMod(..), Exp(..), FunctionTypeArg(..), Ident(..), Lit(..), Statement(..), Type(..))
 
-moduleToSwift :: forall a. Module a -> Decl
-moduleToSwift (Module mod) = TopLevel statements
+moduleToSwift :: forall a. Module a -> Either String Decl
+moduleToSwift (Module mod) = TopLevel <$> statements
   where
-  decls :: List Decl
-  decls = foldr (append <<< declToSwift) Nil (List.fromFoldable mod.moduleDecls)
+  decls :: Either String (List Decl)
+  decls = foldr (append <<< declToSwift) (Right Nil) (List.fromFoldable mod.moduleDecls)
 
-  extension :: Decl
-  extension = Extension (AccessModifier Public : Nil) (moduleNameToSwift mod.moduleName) decls
+  extension :: Either String Decl
+  extension = Extension (AccessModifier Public : Nil) (moduleNameToSwift mod.moduleName) <$> decls
 
-  statements :: List Statement
-  statements = ( Declaration extension : Nil )
+  statements :: Either String (List Statement)
+  statements = do
+    extension' <- extension
+    pure ( Declaration extension' : Nil )
 
   moduleNameToSwift :: ModuleName -> Ident
   moduleNameToSwift (ModuleName mn) = Ident $ intercalate "." (unwrap <$> mn)
 
-  declToSwift :: Bind a -> List Decl
-  declToSwift (NonRec a i e) = List.singleton $ bindingToSwift (Tuple (Tuple a i) e)
-  declToSwift (Rec bs) = bindingToSwift <$> List.fromFoldable bs
+  declToSwift :: Bind a -> Either String (List Decl)
+  declToSwift (NonRec a i e) = do
+    decl <- bindingToSwift (Tuple (Tuple a i) e)
+    pure $ List.singleton decl
+  declToSwift (Rec bs) = traverse bindingToSwift $ List.fromFoldable bs
 
   removeAttributes :: FunctionTypeArg -> FunctionTypeArg
   removeAttributes (FunctionTypeArg e i _ t) = FunctionTypeArg e i Nil t
@@ -78,9 +83,11 @@ moduleToSwift (Module mod) = TopLevel statements
     BooleanLit _ -> Just BoolType
     _ -> Nothing
 
-  bindingToSwift :: Tuple (Tuple a CoreFn.Ident) (CoreFn.Expr a) -> Decl
-  bindingToSwift (Tuple (Tuple _ ident) expr) =
-    Constant (accessMod : Static : Nil) (identToSwift ident) (expToType' removeAllArgLabels exp) exp
+  bindingToSwift :: Tuple (Tuple a CoreFn.Ident) (CoreFn.Expr a) -> Either String Decl
+  bindingToSwift (Tuple (Tuple _ ident) expr) = do
+    ident' <- identToSwift ident
+    exp <- exprToSwift expr
+    pure $ Constant (accessMod : Static : Nil) ident' (expToType' removeAllArgLabels exp) exp
     where
     accessMod :: DeclMod
     accessMod = AccessModifier $ if isExported ident then Public else Internal
@@ -88,13 +95,10 @@ moduleToSwift (Module mod) = TopLevel statements
     isExported :: CoreFn.Ident -> Boolean
     isExported i = elem i mod.moduleExports
 
-    exp :: Exp
-    exp = exprToSwift expr
-
-  identToSwift :: CoreFn.Ident -> Ident
-  identToSwift (CoreFn.Ident ident) = Ident $ properToSwift ident
-  identToSwift (CoreFn.GenIdent s i) = Ident $ fromMaybe "" s <> toStringAs decimal i -- FIXME
-  identToSwift CoreFn.UnusedIdent = Ident "/* FIXME: UnusedIdent */"
+  identToSwift :: CoreFn.Ident -> Either String Ident
+  identToSwift (CoreFn.Ident ident) = Right $ Ident $ properToSwift ident
+  identToSwift (CoreFn.GenIdent _ _) = Left "GenIdent in identToSwift"
+  identToSwift CoreFn.UnusedIdent = Right $ Ident "$__unused"
 
   properToSwift :: String -> String
   properToSwift name
@@ -262,51 +266,71 @@ moduleToSwift (Module mod) = TopLevel statements
     , "willSet"
     ]
 
-  exprToSwift :: CoreFn.Expr a -> Exp
-  exprToSwift (CoreFn.Literal _ l) = Literal $ literalToSwift l
-  exprToSwift (Constructor _ tn cn fs) = Literal $ StringLit "/* FIXME: Constructor Exp */"
-  exprToSwift (Accessor _ s e) = Literal $ StringLit "/* FIXME: Accessor Exp */"
-  exprToSwift (ObjectUpdate _ e ts) = Literal $ StringLit "/* FIXME: ObjectUpdate Exp */"
-  exprToSwift (Abs _ i e) = Closure args returnType ss
+  exprToSwift :: CoreFn.Expr a -> Either String Exp
+  exprToSwift (CoreFn.Literal _ l) = Literal <$> literalToSwift l
+  exprToSwift (Constructor _ tn cn fs) = Right $ Literal $ StringLit "/* FIXME: Constructor Exp */"
+  exprToSwift (Accessor _ s e) = Right $ Literal $ StringLit "/* FIXME: Accessor Exp */"
+  exprToSwift (ObjectUpdate _ e ts) = Right $ Literal $ StringLit "/* FIXME: ObjectUpdate Exp */"
+  exprToSwift (Abs _ i e) = Closure <$> args <*> returnType <*> ss
     where
-    exp :: Exp
+    exp :: Either String Exp
     exp = exprToSwift e
 
-    atts :: List Attribute
-    atts = case exp of
-      Closure _ _ _ -> Escaping : Nil
-      _ -> Nil
+    atts :: Either String (List Attribute)
+    atts = do
+      exp' <- exp
+      pure $ case exp' of
+        Closure _ _ _ -> Escaping : Nil
+        _ -> Nil
 
-    returnType :: Type
-    returnType = fromMaybe AnyType $ expToType exp
+    returnType :: Either String Type
+    returnType = do
+      exp' <- exp
+      pure $ fromMaybe AnyType $ expToType exp'
 
-    args :: List FunctionTypeArg
-    args =
-      ( FunctionTypeArg (Just $ Ident "_") (Just $ identToSwift i) atts returnType
-      : Nil
-      )
+    args :: Either String (List FunctionTypeArg)
+    args = do
+      ident <- identToSwift i
+      atts' <- atts
+      returnType' <- returnType
+      pure $
+        ( FunctionTypeArg (Just $ Ident "_") (Just ident) atts' returnType'
+        : Nil
+        )
 
-    ss :: List Statement
-    ss =
-      ( Return (Just exp)
-      : Nil
-      )
-  exprToSwift (App _ e1 e2) = FunctionCall (exprToSwift e1) (exprToSwift e2 : Nil)
+    ss :: Either String (List Statement)
+    ss = do
+      exp' <- exp
+      pure $
+        ( Return (Just exp')
+        : Nil
+        )
+  exprToSwift (App _ e1 e2) = do
+    exp1 <- exprToSwift e1
+    exp2 <- exprToSwift e2
+    pure $ FunctionCall exp1 (exp2 : Nil)
   exprToSwift (Var _ q) = qualifiedToSwift q
-  exprToSwift (Case _ es cs) = Literal $ StringLit "/* FIXME: Case Exp */"
-  exprToSwift (Let _ bs e) = Literal $ StringLit "/* FIXME: Let Exp */"
+  exprToSwift (Case _ es cs) = Right $ Literal $ StringLit "/* FIXME: Case Exp */"
+  exprToSwift (Let _ bs e) = Right $ Literal $ StringLit "/* FIXME: Let Exp */"
 
-  literalToSwift :: CoreFn.Literal (Expr a) -> Lit
-  literalToSwift (CoreFn.NumericLiteral x) = either IntLit FloatLit x
-  literalToSwift (CoreFn.StringLiteral x) = StringLit x
-  literalToSwift (CoreFn.CharLiteral x) = CharLit x
-  literalToSwift (CoreFn.BooleanLiteral x) = BooleanLit x
-  literalToSwift (CoreFn.ArrayLiteral xs) = ArrayLit $ exprToSwift <$> List.fromFoldable xs
-  literalToSwift (CoreFn.ObjectLiteral xs) = DictLit $ Map.fromFoldable $ map (bimap (Literal <<< StringLit) exprToSwift) xs
+  literalToSwift :: CoreFn.Literal (Expr a) -> Either String Lit
+  literalToSwift (CoreFn.NumericLiteral x) = Right $ either IntLit FloatLit x
+  literalToSwift (CoreFn.StringLiteral x) = Right $ StringLit x
+  literalToSwift (CoreFn.CharLiteral x) = Right $ CharLit x
+  literalToSwift (CoreFn.BooleanLiteral x) = Right $ BooleanLit x
+  literalToSwift (CoreFn.ArrayLiteral xs) = ArrayLit <$> traverse exprToSwift (List.fromFoldable xs)
+  literalToSwift (CoreFn.ObjectLiteral xs) = DictLit <<< Map.fromFoldable <$> xs'
+    where
+    bitraverseTuple :: Tuple String (CoreFn.Expr a) -> Either String (Tuple Exp Exp)
+    bitraverseTuple = bitraverse (Right <<< Literal <<< StringLit) exprToSwift
 
+    xs' :: Either String (Array (Tuple Exp Exp))
+    xs' = traverse bitraverseTuple xs
+
+  qualifiedToSwift :: Qualified CoreFn.Ident -> Either String Exp
   qualifiedToSwift (Qualified q i) =
     case q of
-      Just m -> ExplicitMember (Identifier $ moduleNameToSwift m) ident
-      Nothing -> Identifier ident
+      Just m -> ExplicitMember (Identifier $ moduleNameToSwift m) <$> ident
+      Nothing -> Identifier <$> ident
     where
       ident = identToSwift i
