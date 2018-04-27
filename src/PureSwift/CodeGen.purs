@@ -286,7 +286,7 @@ moduleToSwift (Module mod) = TopLevel <$> statements
     returnType :: Either String Type
     returnType = do
       exp' <- exp
-      pure $ fromMaybe AnyType $ expToType exp'
+      pure $ fromMaybe AnyType $ expToType exp' -- FIXME: return type for functions
 
     args :: Either String (List FunctionTypeArg)
     args = do
