@@ -60,8 +60,8 @@ type State =
   }
 
 toPaths :: forall eff. Array FilePath -> Aff (Effects eff) State
--- toPaths filenames = foldr acc (pure { moduleNamePaths: [], ffis: "", codegens: "" }) filtered
-toPaths filenames = foldr acc (pure { moduleNamePaths: [], ffis: "", codegens: "" }) $ trace (show filtered) \_ -> filtered
+toPaths filenames = foldr acc (pure { moduleNamePaths: [], ffis: "", codegens: "" }) filtered
+-- toPaths filenames = foldr acc (pure { moduleNamePaths: [], ffis: "", codegens: "" }) $ trace (show filtered) \_ -> filtered
   where
     filtered :: Array FilePath
     filtered = flip Array.filter filenames \filename ->
@@ -96,8 +96,8 @@ toPaths filenames = foldr acc (pure { moduleNamePaths: [], ffis: "", codegens: "
 
       when (isDirectory stat) do
         let filepath = printPath $ moduleDir </> file "corefn.json"
-        trace ("------") \_ ->
-        trace ("filepath" <> show filepath) \_ ->
+        -- trace ("------") \_ ->
+        -- trace ("filepath" <> show filepath) \_ ->
 
         whenM (exists filepath) do
           -- moduleNamePaths' <- moduleNamePaths
@@ -108,7 +108,7 @@ toPaths filenames = foldr acc (pure { moduleNamePaths: [], ffis: "", codegens: "
             -- Convert `ForeignError` to `String` to unify with Swift errors
             psModule' = lmap (map renderForeignError) psModule
 
-            -- TODO: move `NonEmptyList` inside pf `moduleToSwift`, to track
+            -- TODO: move `NonEmptyList` inside of `moduleToSwift`, to track
             -- multiple errors at once
             moduleToSwift' = moduleToSwift >>> lmap NonEmptyList.singleton
 
