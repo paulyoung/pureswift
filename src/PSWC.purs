@@ -15,7 +15,7 @@ import Data.Foldable (foldr, for_)
 import Data.Foreign (renderForeignError)
 import Data.List (List(..), (:))
 import Data.List.NonEmpty as NonEmptyList
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Maybe (Maybe(..), maybe)
 import Data.Monoid (guard)
 import Data.Newtype (unwrap)
 import Data.Path.Pathy (Dir, DirName(DirName), Path, Rel, Sandboxed, currentDir, dir, dir', file, parseRelFile, printPath, runDirName, sandbox, (<.>), (</>))
@@ -141,8 +141,8 @@ toPaths filenames = foldr acc (pure { moduleNamePaths: [], ffis: "", codegens: "
 
               pure $
                 { moduleNamePaths: namePaths <> moduleNamePaths
-                , ffis: fromMaybe "" ffi <> "\n" <> ffis
-                , codegens: codegen <> "\n" <> codegens
+                , ffis: maybe "" (_ <> "\n") ffi <> ffis
+                , codegens: codegen <> "\n\n" <> codegens
                 -- , codegens: (trace ("codegen: " <> codegen) \_ -> codegen) <> "\n" <> codegens
                 }
 
