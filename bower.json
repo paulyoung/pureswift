@@ -21,6 +21,7 @@
   "devDependencies": {
     "purescript-psci-support": "^3.0.0",
     "purescript-spec": "^2.0.0",
-    "purescript-spec-discovery": "^2.0.0"
+    "purescript-spec-discovery": "^2.0.0",
+    "purescript-debug": "^3.0.0"
   }
 }
