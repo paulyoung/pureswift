@@ -81,6 +81,7 @@ data Exp
   | Identifier Ident
   | ExplicitMember Exp Ident
   | FunctionCall Exp (List Exp)
+  | Subscript Exp Exp
 
 derive instance eqExp :: Eq Exp
 derive instance ordExp :: Ord Exp
@@ -91,6 +92,7 @@ instance showExp :: Show Exp where
   show (Identifier i) = "(Identifier " <> show i <> ")"
   show (ExplicitMember e i) = "(ExplicitMember " <> (intercalate " " [ show e, show i ]) <> ")"
   show (FunctionCall e es) = "(FunctionCall " <> (intercalate " " [ show e, show es ]) <> ")"
+  show (Subscript e1 e2) = "(Subscript " <> (intercalate " " [ show e1, show e2 ]) <> ")"
 
 
 data FunctionTypeArg = FunctionTypeArg (Maybe Ident) (Maybe Ident) (List Attribute) Type

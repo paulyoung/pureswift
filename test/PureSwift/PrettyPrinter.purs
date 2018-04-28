@@ -499,6 +499,42 @@ spec = describe "PrettyPrinter" do
 
       actual `shouldEqual` expected
 
+  describe "subscript" do
+    it "via identifier" do
+      let
+        exp :: Exp
+        exp = Subscript (Identifier $ Ident "foo") (Literal $ IntLit 1)
+
+        decl :: Decl
+        decl = TopLevel $ Expression exp : Nil
+
+        actual :: String
+        actual = prettyPrint decl
+
+        expected :: String
+        expected = "foo[1]"
+
+      actual `shouldEqual` expected
+
+    it "via subscript" do
+      let
+        exp1 :: Exp
+        exp1 = Subscript (Identifier $ Ident "foo") (Literal $ IntLit 1)
+
+        exp2 :: Exp
+        exp2 = Subscript exp1 (Literal $ StringLit "bar")
+
+        decl :: Decl
+        decl = TopLevel $ Expression exp2 : Nil
+
+        actual :: String
+        actual = prettyPrint decl
+
+        expected :: String
+        expected = "foo[1][\"bar\"]"
+
+      actual `shouldEqual` expected
+
   describe "import" do
     it "entire module" do
       let

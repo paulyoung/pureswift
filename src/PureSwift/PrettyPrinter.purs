@@ -100,6 +100,7 @@ ppExp (Closure as r ss) = ppClosure as r ss
 ppExp (Identifier i) = ppIdent i
 ppExp (ExplicitMember e i) = ppExp e <> text "." <> ppIdent i
 ppExp (FunctionCall e es) = ppExp e <> ppList "(" ")" es
+ppExp (Subscript e1 e2) = ppExp e1 <> text "[" <> ppExp e2 <> text "]"
 
 ppLit :: Lit -> DOC
 ppLit (IntLit i) = text $ show i
