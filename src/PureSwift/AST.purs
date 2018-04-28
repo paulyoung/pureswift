@@ -87,10 +87,10 @@ derive instance ordExp :: Ord Exp
 
 instance showExp :: Show Exp where
   show (Literal l) = "(Literal " <> show l <> ")"
-  show (Closure as r ss) = intercalate " " [ "(Closure ", show as, show r, show ss, ")" ]
+  show (Closure as r ss) = "(Closure " <> (intercalate " " [ show as, show r, show ss ]) <> ")"
   show (Identifier i) = "(Identifier " <> show i <> ")"
-  show (ExplicitMember e i) = intercalate " " [ "(ExplicitMember ", show e, show i, ")" ]
-  show (FunctionCall e es) = intercalate " " [ "(FunctionCall", show e, show es, ")" ]
+  show (ExplicitMember e i) = "(ExplicitMember " <> (intercalate " " [ show e, show i ]) <> ")"
+  show (FunctionCall e es) = "(FunctionCall " <> (intercalate " " [ show e, show es ]) <> ")"
 
 
 data FunctionTypeArg = FunctionTypeArg (Maybe Ident) (Maybe Ident) (List Attribute) Type
