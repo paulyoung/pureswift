@@ -6,7 +6,7 @@ import Data.List (List(..), (:))
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
-import PureSwift.AST (AccessMod(..), Attribute(..), Decl(..), DeclMod(..), Exp(..), FunctionTypeArg(..), Ident(..), Lit(..), Statement(..), Type(..))
+import PureSwift.AST (AccessMod(..), Attribute(..), Decl(..), DeclMod(..), Exp(..), FunctionTypeArg(..), Ident(..), Lit(..), ProtocolMemberDecl(..), Statement(..), Type(..))
 import PureSwift.PrettyPrinter (prettyPrint)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
@@ -605,6 +605,73 @@ spec = describe "PrettyPrinter" do
             <> "}"
 
         actual `shouldEqual` expected
+
+  describe "protocol" do
+    it "empty" do
+      let
+        decl :: Decl
+        decl = Protocol (AccessModifier Public : Nil) (Ident "Foo") Nil Nil
+
+        actual :: String
+        actual = prettyPrint decl
+
+        expected :: String
+        expected = "public protocol Foo {}"
+
+      actual `shouldEqual` expected
+
+    -- TODO: type inheritance clause
+
+    describe "non-empty" do
+      it "single" do
+        let
+          decl :: Decl
+          decl =
+             Protocol (AccessModifier Public : Nil) (Ident "Foo") Nil
+              ( Method Nil (Ident "bar") Nil AnyType
+              : Nil
+              )
+
+          actual :: String
+          actual = prettyPrint decl
+
+          expected :: String
+          expected = ""
+            <> "public protocol Foo {\n"
+            <> "  func bar() -> Any\n"
+            <> "}"
+
+        actual `shouldEqual` expected
+
+      it "multiple" do
+        let
+          args :: List FunctionTypeArg
+          args =
+            ( FunctionTypeArg Nothing (Just $ Ident "_") Nil AnyType
+            : Nil
+            )
+
+          decl :: Decl
+          decl =
+            Protocol (AccessModifier Public : Nil) (Ident "Foo") Nil
+              ( Method Nil (Ident "bar") Nil AnyType
+              : Method Nil (Ident "baz") args AnyType
+              : Nil
+              )
+
+          actual :: String
+          actual = prettyPrint decl
+
+          expected :: String
+          expected = ""
+            <> "public protocol Foo {\n"
+            <> "  func bar() -> Any\n"
+            <> "  func baz(_: Any) -> Any\n"
+            <> "}"
+
+        actual `shouldEqual` expected
+
+  -- describe "struct"
 
   describe "extension" do
     it "empty" do

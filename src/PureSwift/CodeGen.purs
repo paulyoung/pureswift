@@ -269,7 +269,7 @@ moduleToSwift (Module mod) = TopLevel <$> statements
   exprToSwift :: CoreFn.Expr a -> Either String Exp
   exprToSwift (CoreFn.Literal _ l) = Literal <$> literalToSwift l
   exprToSwift (Constructor _ tn cn fs) = Right $ Literal $ StringLit "/* FIXME: Constructor Exp */"
-  exprToSwift (Accessor _ s e) = Subscript <$> exprToSwift e <@> (Literal $ StringLit s)
+  exprToSwift (Accessor _ s e) = Subscript <$> exprToSwift e <@> (Literal $ StringLit s) -- FIXME: property access
   exprToSwift (ObjectUpdate _ e ts) = Right $ Literal $ StringLit "/* FIXME: ObjectUpdate Exp */"
   exprToSwift (Abs _ i e) = Closure <$> args <*> returnType <*> ss
     where

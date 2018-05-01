@@ -12,7 +12,7 @@ import Data.Maybe (Maybe(Just, Nothing), maybe, maybe')
 import Data.String as String
 import Data.Tuple (Tuple(..))
 import Prettier.Printer (DOC, line, nest, nil, pretty, spread, stack, text)
-import PureSwift.AST (AccessMod(..), Attribute(..), Decl(..), DeclMod(..), Exp(..), FunctionTypeArg(..), Ident(..), Lit(..), Statement(..), Type(..))
+import PureSwift.AST (AccessMod(..), Attribute(..), Decl(..), DeclMod(..), Exp(..), FunctionTypeArg(..), Ident(..), Lit(..), ProtocolMemberDecl(..), Statement(..), Type(..))
 
 -- | Alternative pretty-printing functions so that we never `flatten` line
 -- | breaks into spaces. This should be equivalent to providing a width of 0 to
@@ -34,13 +34,18 @@ bracket = bracket' 2
 prettyPrint :: Decl -> String
 prettyPrint = pretty top <<< ppDecl
 
+pad :: forall a. (List a -> DOC) -> List a -> DOC
+pad _ Nil = text ""
+pad f xs = f xs <> text " "
+
 ppDecl :: Decl -> DOC
-ppDecl (Enum ms i ds) = ppContainerDecl "enum" ms i ds
-ppDecl (Extension ms i ds) = ppContainerDecl "extension" ms i ds
+ppDecl (Enum ms i ds) = ppContainerDecl "enum" ms i (ppDecl <$> ds)
+ppDecl (Extension ms i ds) = ppContainerDecl "extension" ms i (ppDecl <$> ds)
 ppDecl (Import i) = text "import " <> ppIdent i
+ppDecl (Protocol ms i is ds) = ppContainerDecl "protocol" ms i (ppProtocolMemberDecl <$> ds) -- FIXME is
 ppDecl (TopLevel ss) = ppStatements ss
-ppDecl (Constant ms i mt e) = group $ intercalate (text " ")
-  [ ppDeclMods ms, text "let", ident, text "=", ppExp e ]
+ppDecl (Constant ms i mt e) =
+  group $ pad ppDeclMods ms <> intercalate (text " ") [ text "let", ident, text "=", ppExp e ]
   where
   ident = maybe' (\_ -> ppIdent i) (\t -> ppIdent i <> text ": " <> ppType t) mt
 
@@ -51,13 +56,14 @@ ppContainerDecl
   :: String
   -> List DeclMod
   -> Ident
-  -> List Decl
+  -- -> (List Ident)
+  -> List DOC
   -> DOC
-ppContainerDecl name ms i ds = group $ intercalate (text " ")
-  [ ppDeclMods ms, text name, ppIdent i, ppBrace ds ]
+ppContainerDecl name ms i ds =
+  group $ pad ppDeclMods ms <> intercalate (text " ") [ text name, ppIdent i, ppBrace ds ]
 
 ppDeclMods :: List DeclMod -> DOC
-ppDeclMods ms = spread $ map ppDeclMod ms
+ppDeclMods = spread <<< map ppDeclMod
 
 ppDeclMod :: DeclMod -> DOC
 ppDeclMod Static = text "static"
@@ -75,14 +81,13 @@ ppAccessMod PublicSet = text "public(set)"
 ppAccessMod Open = text "open"
 ppAccessMod OpenSet = text "open(set)"
 
-ppBrace :: List Decl -> DOC
+ppBrace :: List DOC -> DOC
 ppBrace Nil = text "{}"
-ppBrace ds = bracket "{" (ppDecls ds) "}"
+ppBrace ds = bracket "{" (stack ds) "}"
 
-ppDecls :: List Decl -> DOC
-ppDecls Nil = nil
-ppDecls (Cons d Nil) = ppDecl d
-ppDecls (Cons d ds) = ppDecl d <> line <> ppDecls ds
+ppProtocolMemberDecl :: ProtocolMemberDecl -> DOC
+ppProtocolMemberDecl (Method ms i as r) =
+  group $ pad ppDeclMods ms <> intercalate (text " ") [ text "func", ppIdent i ] <> ppFunctionType as r
 
 ppList :: String -> String -> List Exp -> DOC
 ppList l r Nil = text l <> text r
@@ -149,7 +154,6 @@ ppType StringType = text "String"
 ppType BoolType = text "Bool"
 
 ppFunctionType :: List FunctionTypeArg -> Type -> DOC
-ppFunctionType Nil r = ppType r
 ppFunctionType args r = ppFunctionTypeArgs args <> text " -> " <> ppType r
   where
   ppFunctionTypeArgs :: List FunctionTypeArg -> DOC

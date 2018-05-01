@@ -159,14 +159,27 @@ data Decl
   | Enum (List DeclMod) Ident (List Decl)
   | Extension (List DeclMod) Ident (List Decl)
   | Import Ident
+  | Protocol (List DeclMod) Ident (List Ident) (List ProtocolMemberDecl)
+  -- | Struct (List DeclMod) Ident (List Ident) (List Decl)
   | TopLevel (List Statement)
 
 derive instance eqDecl :: Eq Decl
 derive instance ordDecl :: Ord Decl
 
 instance showDecl :: Show Decl where
-  show (Constant dms i t e) = intercalate " " [ "(Constant", show dms, show i, show t, show e, ")" ]
-  show (Enum dms i ds) = intercalate " " [ "(Enum", show dms, show i, show ds, ")" ]
-  show (Extension dms i ds) = intercalate " " [ "(Extension", show dms, show i, show ds, ")" ]
+  show (Constant ms i t e) = "(Constant " <> intercalate " " [ show ms, show i, show t, show e ] <> ")"
+  show (Enum ms i ds) = "(Enum " <> intercalate " " [ show ms, show i, show ds ] <> ")"
+  show (Extension ms i ds) = "(Extension " <> intercalate " " [ show ms, show i, show ds ] <> ")"
   show (Import i) = "(Import " <> show i <> ")"
+  show (Protocol ms i is ds) = "(Protocol " <> intercalate " " [ show ms, show i, show is, show ds ] <> ")"
   show (TopLevel ss) = "(TopLevel " <> show ss <> ")"
+
+
+data ProtocolMemberDecl
+ = Method (List DeclMod) Ident (List FunctionTypeArg) Type
+
+derive instance eqProtocolMemberDecl :: Eq ProtocolMemberDecl
+derive instance ordProtocolMemberDecl :: Ord ProtocolMemberDecl
+
+instance showProtocolMemberDecl :: Show ProtocolMemberDecl where
+  show (Method ms i as r) = "(Method " <> intercalate " " [ show ms, show i, show as, show r ] <> ")"
