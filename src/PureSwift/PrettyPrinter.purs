@@ -102,8 +102,7 @@ ppList l r es = text l <> bracket "" (ppListItems es) "" <> text r
   where
   ppListItems :: List Exp -> DOC
   ppListItems Nil = nil
-  ppListItems (Cons e' Nil) = ppExp e'
-  ppListItems (Cons e' es') = ppExp e' <> text "," <> line <> ppListItems es'
+  ppListItems es'@(Cons _ _) = intercalate (text "," <> line) (ppExp <$> es')
 
 ppExp :: Exp -> DOC
 ppExp (Literal l) = ppLit l
@@ -128,8 +127,7 @@ ppLit (DictLit m) =
   where
   ppDictItems :: List (Tuple Exp Exp) -> DOC
   ppDictItems Nil = nil
-  ppDictItems (Cons t Nil) = ppDictItem t
-  ppDictItems (Cons t ts) = ppDictItem t <> text "," <> line <> ppDictItems ts
+  ppDictItems ts@(Cons _ _) = intercalate (text "," <> line) (ppDictItem <$> ts)
 
   ppDictItem :: Tuple Exp Exp -> DOC
   ppDictItem (Tuple k v) = ppExp k <> text ": " <> ppExp v
