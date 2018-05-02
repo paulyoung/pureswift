@@ -78,7 +78,7 @@ spec = describe "CodeGen" do
           (Just StringType)
           (Literal $ StringLit "not exported")
 
-      extension = Extension (AccessModifier Public : Nil) (Ident "Exports") (public : internal : Nil)
+      extension = Extension (AccessModifier Public : Nil) (Ident "Exports") Nil (public : internal : Nil)
 
       actualDecl = moduleToSwift mod
       actualString = prettyPrint <$> actualDecl
@@ -172,7 +172,7 @@ spec = describe "CodeGen" do
       log = ExplicitMember (Identifier $ Ident "Control.Monad.Eff.Console") (Ident "log")
       functionCall = FunctionCall log (Literal (StringLit "Hello world!") : Nil)
       main = Constant (AccessModifier Public : Static : Nil) (Ident "main") Nothing functionCall
-      extension = Extension (AccessModifier Public : Nil) (Ident "Main") (main : Nil)
+      extension = Extension (AccessModifier Public : Nil) (Ident "Main") Nil (main : Nil)
 
       expectedDecl = TopLevel
         ( Declaration extension
@@ -246,7 +246,7 @@ spec = describe "CodeGen" do
         charDecl = Constant declMods (Ident "char") (Just CharType) (Literal $ CharLit 'a')
         booleanDecl = Constant declMods (Ident "boolean") (Just BoolType) (Literal $ BooleanLit true)
 
-        extension = Extension (AccessModifier Public : Nil) (Ident "Literals")
+        extension = Extension (AccessModifier Public : Nil) (Ident "Literals") Nil
           ( intDecl
           : floatDecl
           : stringDecl
@@ -342,7 +342,7 @@ spec = describe "CodeGen" do
           : Nil
           )
 
-        extension = Extension (AccessModifier Public : Nil) (Ident "ArrayLiterals")
+        extension = Extension (AccessModifier Public : Nil) (Ident "ArrayLiterals") Nil
           ( emptyDecl
           : singleItemDecl
           : multipleItemsDecl
@@ -436,7 +436,7 @@ spec = describe "CodeGen" do
             , Tuple (Literal $ StringLit "c") (Literal $ BooleanLit true)
             ]
 
-        extension = Extension (AccessModifier Public : Nil) (Ident "DictLiterals")
+        extension = Extension (AccessModifier Public : Nil) (Ident "DictLiterals") Nil
           ( emptyDecl
           : singleItemDecl
           : multipleItemsDecl
@@ -538,7 +538,7 @@ spec = describe "CodeGen" do
       gType = Just $ FunctionType (FunctionTypeArg Nothing Nothing Nil AnyType : Nil) AnyType
       gBindingDecl = Constant declMods (Ident "g") gType gClosure
 
-      extension = Extension (AccessModifier Public : Nil) (Ident "MutRec")
+      extension = Extension (AccessModifier Public : Nil) (Ident "MutRec") Nil
         ( fBindingDecl
         : gBindingDecl
         : Nil
@@ -644,7 +644,7 @@ spec = describe "CodeGen" do
           (Just $ FunctionType (FunctionTypeArg Nothing Nothing (Escaping : Nil) fnType : Nil) fnType)
           f
 
-      extension = Extension (AccessModifier Public : Nil) (Ident "HigherOrder")
+      extension = Extension (AccessModifier Public : Nil) (Ident "HigherOrder") Nil
         ( decl
         : Nil
         )
@@ -713,7 +713,7 @@ spec = describe "CodeGen" do
 
         booleanDecl = Constant declMods (Ident "`class`") (Just BoolType) (Literal $ BooleanLit true)
 
-        extension = Extension (AccessModifier Public : Nil) (Ident "Keywords")
+        extension = Extension (AccessModifier Public : Nil) (Ident "Keywords") Nil
           ( booleanDecl
           : Nil
           )
@@ -777,7 +777,7 @@ spec = describe "CodeGen" do
 
         booleanDecl = Constant declMods (Ident "foo$prime") (Just BoolType) (Literal $ BooleanLit true)
 
-        extension = Extension (AccessModifier Public : Nil) (Ident "Characters")
+        extension = Extension (AccessModifier Public : Nil) (Ident "Characters") Nil
           ( booleanDecl
           : Nil
           )

@@ -553,7 +553,7 @@ spec = describe "PrettyPrinter" do
     it "empty" do
       let
         decl :: Decl
-        decl = Enum (AccessModifier Public : Nil) (Ident "Foo") Nil
+        decl = Enum (AccessModifier Public : Nil) (Ident "Foo") Nil Nil
 
         actual :: String
         actual = prettyPrint decl
@@ -568,8 +568,8 @@ spec = describe "PrettyPrinter" do
         let
           decl :: Decl
           decl =
-            Enum (AccessModifier Public : Nil) (Ident "Foo")
-              ( Enum (AccessModifier Public : Nil) (Ident "Bar") Nil
+            Enum (AccessModifier Public : Nil) (Ident "Foo") Nil
+              ( Enum (AccessModifier Public : Nil) (Ident "Bar") Nil Nil
               : Nil
               )
 
@@ -588,8 +588,8 @@ spec = describe "PrettyPrinter" do
         let
           decl :: Decl
           decl =
-            Enum (AccessModifier Public : Nil) (Ident "Foo")
-              ( Enum (AccessModifier Public : Nil) (Ident "Bar") Nil
+            Enum (AccessModifier Public : Nil) (Ident "Foo") Nil
+              ( Enum (AccessModifier Public : Nil) (Ident "Bar") Nil Nil
               : Constant (AccessModifier Public : Static : Nil) (Ident "baz") Nothing (Literal $ IntLit 42)
               : Nil
               )
@@ -669,46 +669,14 @@ spec = describe "PrettyPrinter" do
 
         actual `shouldEqual` expected
 
-    describe "type inheritance" do
-      it "single" do
-        let
-          inheritance :: List Ident
-          inheritance = Ident "Bar" : Nil
-
-          decl :: Decl
-          decl = Protocol (AccessModifier Public : Nil) (Ident "Foo") inheritance Nil
-
-          actual :: String
-          actual = prettyPrint decl
-
-          expected :: String
-          expected = "public protocol Foo: Bar {}"
-
-        actual `shouldEqual` expected
-
-      it "multiple" do
-        let
-          inheritance :: List Ident
-          inheritance = Ident "Bar" : Ident "Baz" : Nil
-
-          decl :: Decl
-          decl = Protocol (AccessModifier Public : Nil) (Ident "Foo") inheritance Nil
-
-          actual :: String
-          actual = prettyPrint decl
-
-          expected :: String
-          expected = "public protocol Foo: Bar, Baz {}"
-
-        actual `shouldEqual` expected
-
   -- describe "struct"
+  -- TODO: type inheritance tests shared between enum, extension and struct
 
   describe "extension" do
     it "empty" do
       let
         decl :: Decl
-        decl = Extension (AccessModifier Public : Nil) (Ident "Foo") Nil
+        decl = Extension (AccessModifier Public : Nil) (Ident "Foo") Nil Nil
 
         actual :: String
         actual = prettyPrint decl
@@ -723,8 +691,8 @@ spec = describe "PrettyPrinter" do
         let
           decl :: Decl
           decl =
-            Extension (AccessModifier Public : Nil) (Ident "Foo")
-              ( Enum (AccessModifier Public : Nil) (Ident "Bar") Nil
+            Extension (AccessModifier Public : Nil) (Ident "Foo") Nil
+              ( Enum (AccessModifier Public : Nil) (Ident "Bar") Nil Nil
               : Nil
               )
 
@@ -743,9 +711,9 @@ spec = describe "PrettyPrinter" do
         let
           decl :: Decl
           decl =
-            Extension (AccessModifier Public : Nil) (Ident "Foo")
-              ( Enum (AccessModifier Public : Nil) (Ident "Bar") Nil
-              : Enum (AccessModifier Public : Nil) (Ident "Baz") Nil
+            Extension (AccessModifier Public : Nil) (Ident "Foo") Nil
+              ( Enum (AccessModifier Public : Nil) (Ident "Bar") Nil Nil
+              : Enum (AccessModifier Public : Nil) (Ident "Baz") Nil Nil
               : Nil
               )
 
@@ -760,3 +728,49 @@ spec = describe "PrettyPrinter" do
             <> "}"
 
         actual `shouldEqual` expected
+
+  testTypeInheritance "enum" Enum
+  testTypeInheritance "extension" Extension
+  testTypeInheritance "protocol" Protocol
+  -- testTypeInheritance "struct" Struct
+
+  where
+  testTypeInheritance
+    :: forall a
+     . String
+    -> (List DeclMod -> Ident -> List Ident -> List a -> Decl)
+    ->  Spec r Unit
+  testTypeInheritance name ctor =
+    describe "type inheritance" do
+      describe name do
+        it "single" do
+          let
+            inheritance :: List Ident
+            inheritance = Ident "Bar" : Nil
+
+            decl :: Decl
+            decl = ctor (AccessModifier Public : Nil) (Ident "Foo") inheritance Nil
+
+            actual :: String
+            actual = prettyPrint decl
+
+            expected :: String
+            expected = "public " <> name <> " Foo: Bar {}"
+
+          actual `shouldEqual` expected
+
+        it "multiple" do
+          let
+            inheritance :: List Ident
+            inheritance = Ident "Bar" : Ident "Baz" : Nil
+
+            decl :: Decl
+            decl = ctor (AccessModifier Public : Nil) (Ident "Foo") inheritance Nil
+
+            actual :: String
+            actual = prettyPrint decl
+
+            expected :: String
+            expected = "public " <> name <> " Foo: Bar, Baz {}"
+
+          actual `shouldEqual` expected

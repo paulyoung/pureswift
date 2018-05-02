@@ -39,8 +39,8 @@ pad _ Nil = text ""
 pad f xs = f xs <> text " "
 
 ppDecl :: Decl -> DOC
-ppDecl (Enum ms i ds) = ppContainerDecl "enum" ms i Nil (ppDecl <$> ds)
-ppDecl (Extension ms i ds) = ppContainerDecl "extension" ms i Nil (ppDecl <$> ds)
+ppDecl (Enum ms i is ds) = ppContainerDecl "enum" ms i is (ppDecl <$> ds)
+ppDecl (Extension ms i is ds) = ppContainerDecl "extension" ms i is (ppDecl <$> ds)
 ppDecl (Import i) = text "import " <> ppIdent i
 ppDecl (Protocol ms i is ds) = ppContainerDecl "protocol" ms i is (ppProtocolMemberDecl <$> ds)
 ppDecl (TopLevel ss) = ppStatements ss

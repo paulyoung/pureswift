@@ -46,8 +46,8 @@ dryRun (Trie trie) ffis codegens = do
       Just { init, last } -> do
         log $ "// " <> Array.intercalate "." path <> "__Namespace.swift"
         let
-          enum = Enum (AccessModifier Public : Nil) (Ident last) Nil
-          decl = if Array.null init then enum else Extension (AccessModifier Public : Nil) (Ident $ Array.intercalate "." init) (enum : Nil)
+          enum = Enum (AccessModifier Public : Nil) (Ident last) Nil Nil
+          decl = if Array.null init then enum else Extension (AccessModifier Public : Nil) (Ident $ Array.intercalate "." init) Nil (enum : Nil)
         log $ prettyPrint decl <> "\n"
       Nothing -> pure unit
   log ffis

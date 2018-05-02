@@ -156,8 +156,8 @@ instance showStatement :: Show Statement where
 
 data Decl
   = Constant (List DeclMod) Ident (Maybe Type) Exp
-  | Enum (List DeclMod) Ident (List Decl)
-  | Extension (List DeclMod) Ident (List Decl)
+  | Enum (List DeclMod) Ident (List Ident) (List Decl)
+  | Extension (List DeclMod) Ident (List Ident) (List Decl)
   | Import Ident
   | Protocol (List DeclMod) Ident (List Ident) (List ProtocolMemberDecl)
   -- | Struct (List DeclMod) Ident (List Ident) (List Decl)
@@ -168,8 +168,8 @@ derive instance ordDecl :: Ord Decl
 
 instance showDecl :: Show Decl where
   show (Constant ms i t e) = "(Constant " <> intercalate " " [ show ms, show i, show t, show e ] <> ")"
-  show (Enum ms i ds) = "(Enum " <> intercalate " " [ show ms, show i, show ds ] <> ")"
-  show (Extension ms i ds) = "(Extension " <> intercalate " " [ show ms, show i, show ds ] <> ")"
+  show (Enum ms i is ds) = "(Enum " <> intercalate " " [ show ms, show i, show is, show ds ] <> ")"
+  show (Extension ms i is ds) = "(Extension " <> intercalate " " [ show ms, show i, show is, show ds ] <> ")"
   show (Import i) = "(Import " <> show i <> ")"
   show (Protocol ms i is ds) = "(Protocol " <> intercalate " " [ show ms, show i, show is, show ds ] <> ")"
   show (TopLevel ss) = "(TopLevel " <> show ss <> ")"

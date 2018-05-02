@@ -34,7 +34,7 @@ moduleToSwift (Module mod) = TopLevel <$> statements
   decls = foldr (append <<< declToSwift) (Right Nil) (List.fromFoldable mod.moduleDecls)
 
   extension :: Either String Decl
-  extension = Extension (AccessModifier Public : Nil) (moduleNameToSwift mod.moduleName) <$> decls
+  extension = Extension (AccessModifier Public : Nil) (moduleNameToSwift mod.moduleName) Nil <$> decls
 
   statements :: Either String (List Statement)
   statements = do
