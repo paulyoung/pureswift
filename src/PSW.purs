@@ -1,4 +1,4 @@
-module PSWC where
+module PSW where
 
 import Prelude
 
