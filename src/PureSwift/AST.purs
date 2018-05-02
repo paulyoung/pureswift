@@ -160,7 +160,7 @@ data Decl
   | Extension (List DeclMod) Ident (List Ident) (List Decl)
   | Import Ident
   | Protocol (List DeclMod) Ident (List Ident) (List ProtocolMemberDecl)
-  -- | Struct (List DeclMod) Ident (List Ident) (List Decl)
+  | Struct (List DeclMod) Ident (List Ident) (List Decl)
   | TopLevel (List Statement)
 
 derive instance eqDecl :: Eq Decl
@@ -172,6 +172,7 @@ instance showDecl :: Show Decl where
   show (Extension ms i is ds) = "(Extension " <> intercalate " " [ show ms, show i, show is, show ds ] <> ")"
   show (Import i) = "(Import " <> show i <> ")"
   show (Protocol ms i is ds) = "(Protocol " <> intercalate " " [ show ms, show i, show is, show ds ] <> ")"
+  show (Struct ms i is ds) = "(Struct " <> intercalate " " [ show ms, show i, show is, show ds ] <> ")"
   show (TopLevel ss) = "(TopLevel " <> show ss <> ")"
 
 

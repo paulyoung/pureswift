@@ -44,6 +44,7 @@ ppDecl (Extension ms i is ds) = ppContainerDecl "extension" ms i is (ppDecl <$> 
 ppDecl (Import i) = text "import " <> ppIdent i
 ppDecl (Protocol ms i is ds) = ppContainerDecl "protocol" ms i is (ppProtocolMemberDecl <$> ds)
 ppDecl (TopLevel ss) = ppStatements ss
+ppDecl (Struct ms i is ds) = ppContainerDecl "struct" ms i is (ppDecl <$> ds)
 ppDecl (Constant ms i mt e) =
   group $ pad ppDeclMods ms <> intercalate (text " ") [ text "let", ident, text "=", ppExp e ]
   where

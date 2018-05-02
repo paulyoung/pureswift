@@ -669,8 +669,62 @@ spec = describe "PrettyPrinter" do
 
         actual `shouldEqual` expected
 
-  -- describe "struct"
-  -- TODO: type inheritance tests shared between enum, extension and struct
+  describe "struct" do
+    it "empty" do
+      let
+        decl :: Decl
+        decl = Struct (AccessModifier Public : Nil) (Ident "Foo") Nil Nil
+
+        actual :: String
+        actual = prettyPrint decl
+
+        expected :: String
+        expected = "public struct Foo {}"
+
+      actual `shouldEqual` expected
+
+    describe "non-empty" do
+      it "single" do
+        let
+          decl :: Decl
+          decl =
+            Struct (AccessModifier Public : Nil) (Ident "Foo") Nil
+              ( Struct (AccessModifier Public : Nil) (Ident "Bar") Nil Nil
+              : Nil
+              )
+
+          actual :: String
+          actual = prettyPrint decl
+
+          expected :: String
+          expected = ""
+            <> "public struct Foo {\n"
+            <> "  public struct Bar {}\n"
+            <> "}"
+
+        actual `shouldEqual` expected
+
+      it "multiple" do
+        let
+          decl :: Decl
+          decl =
+            Struct (AccessModifier Public : Nil) (Ident "Foo") Nil
+              ( Struct (AccessModifier Public : Nil) (Ident "Bar") Nil Nil
+              : Constant (AccessModifier Public : Static : Nil) (Ident "baz") Nothing (Literal $ IntLit 42)
+              : Nil
+              )
+
+          actual :: String
+          actual = prettyPrint decl
+
+          expected :: String
+          expected = ""
+            <> "public struct Foo {\n"
+            <> "  public struct Bar {}\n"
+            <> "  public static let baz = 42\n"
+            <> "}"
+
+        actual `shouldEqual` expected
 
   describe "extension" do
     it "empty" do
@@ -732,7 +786,7 @@ spec = describe "PrettyPrinter" do
   testTypeInheritance "enum" Enum
   testTypeInheritance "extension" Extension
   testTypeInheritance "protocol" Protocol
-  -- testTypeInheritance "struct" Struct
+  testTypeInheritance "struct" Struct
 
   where
   testTypeInheritance
