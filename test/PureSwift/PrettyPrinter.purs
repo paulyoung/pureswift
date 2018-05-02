@@ -620,8 +620,6 @@ spec = describe "PrettyPrinter" do
 
       actual `shouldEqual` expected
 
-    -- TODO: type inheritance clause
-
     describe "non-empty" do
       it "single" do
         let
@@ -668,6 +666,39 @@ spec = describe "PrettyPrinter" do
             <> "  func bar() -> Any\n"
             <> "  func baz(_: Any) -> Any\n"
             <> "}"
+
+        actual `shouldEqual` expected
+
+    describe "type inheritance" do
+      it "single" do
+        let
+          inheritance :: List Ident
+          inheritance = Ident "Bar" : Nil
+
+          decl :: Decl
+          decl = Protocol (AccessModifier Public : Nil) (Ident "Foo") inheritance Nil
+
+          actual :: String
+          actual = prettyPrint decl
+
+          expected :: String
+          expected = "public protocol Foo: Bar {}"
+
+        actual `shouldEqual` expected
+
+      it "multiple" do
+        let
+          inheritance :: List Ident
+          inheritance = Ident "Bar" : Ident "Baz" : Nil
+
+          decl :: Decl
+          decl = Protocol (AccessModifier Public : Nil) (Ident "Foo") inheritance Nil
+
+          actual :: String
+          actual = prettyPrint decl
+
+          expected :: String
+          expected = "public protocol Foo: Bar, Baz {}"
 
         actual `shouldEqual` expected
 

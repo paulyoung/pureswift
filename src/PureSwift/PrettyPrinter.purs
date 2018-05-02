@@ -39,10 +39,10 @@ pad _ Nil = text ""
 pad f xs = f xs <> text " "
 
 ppDecl :: Decl -> DOC
-ppDecl (Enum ms i ds) = ppContainerDecl "enum" ms i (ppDecl <$> ds)
-ppDecl (Extension ms i ds) = ppContainerDecl "extension" ms i (ppDecl <$> ds)
+ppDecl (Enum ms i ds) = ppContainerDecl "enum" ms i Nil (ppDecl <$> ds)
+ppDecl (Extension ms i ds) = ppContainerDecl "extension" ms i Nil (ppDecl <$> ds)
 ppDecl (Import i) = text "import " <> ppIdent i
-ppDecl (Protocol ms i is ds) = ppContainerDecl "protocol" ms i (ppProtocolMemberDecl <$> ds) -- FIXME is
+ppDecl (Protocol ms i is ds) = ppContainerDecl "protocol" ms i is (ppProtocolMemberDecl <$> ds)
 ppDecl (TopLevel ss) = ppStatements ss
 ppDecl (Constant ms i mt e) =
   group $ pad ppDeclMods ms <> intercalate (text " ") [ text "let", ident, text "=", ppExp e ]
@@ -56,11 +56,17 @@ ppContainerDecl
   :: String
   -> List DeclMod
   -> Ident
-  -- -> (List Ident)
+  -> (List Ident)
   -> List DOC
   -> DOC
-ppContainerDecl name ms i ds =
-  group $ pad ppDeclMods ms <> intercalate (text " ") [ text name, ppIdent i, ppBrace ds ]
+ppContainerDecl name ms i is ds =
+  group
+    $ pad ppDeclMods ms
+    <> text name <> text " " <> ppIdent i <> ppInheritance is <> text " "
+    <> ppBrace ds
+  where
+  ppInheritance Nil = text ""
+  ppInheritance is'@(Cons _ _) = text ": " <> intercalate (text ", ") (ppIdent <$> is')
 
 ppDeclMods :: List DeclMod -> DOC
 ppDeclMods = spread <<< map ppDeclMod
