@@ -2,6 +2,7 @@ module Test.PureSwift.PrettyPrinter where
 
 import Prelude
 
+import Data.Array (intercalate)
 import Data.List (List(..), (:))
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
@@ -125,12 +126,13 @@ spec = describe "PrettyPrinter" do
               actual = prettyPrint decl
 
               expected :: String
-              expected = ""
-                <> "public let foo = [\n"
-                <> "  1,\n"
-                <> "  2,\n"
-                <> "  3\n"
-                <> "]"
+              expected = intercalate "\n"
+                [ "public let foo = ["
+                , "  1,"
+                , "  2,"
+                , "  3"
+                , "]"
+                ]
 
             actual `shouldEqual` expected
 
@@ -177,12 +179,13 @@ spec = describe "PrettyPrinter" do
               actual = prettyPrint decl
 
               expected :: String
-              expected = ""
-                <> "public let foo = [\n"
-                <> "  \"a\": 1,\n"
-                <> "  \"b\": 2,\n"
-                <> "  \"c\": 3\n"
-                <> "]"
+              expected = intercalate "\n"
+                [ "public let foo = ["
+                , "  \"a\": 1,"
+                , "  \"b\": 2,"
+                , "  \"c\": 3"
+                , "]"
+                ]
 
             actual `shouldEqual` expected
 
@@ -222,10 +225,11 @@ spec = describe "PrettyPrinter" do
             actual = prettyPrint decl
 
             expected :: String
-            expected = ""
-              <> "public let id = { (x: Any) -> Any in\n"
-              <> "  return x\n"
-              <> "}"
+            expected = intercalate "\n"
+              [ "public let id = { (x: Any) -> Any in"
+              , "  return x"
+              , "}"
+              ]
 
           actual `shouldEqual` expected
 
@@ -267,12 +271,13 @@ spec = describe "PrettyPrinter" do
             actual = prettyPrint decl
 
             expected :: String
-            expected = ""
-              <> "public let const = { (x: Any) -> (_ y: Any) -> Any in\n"
-              <> "  return { (y: Any) -> Any in\n"
-              <> "    return x\n"
-              <> "  }\n"
-              <> "}"
+            expected = intercalate "\n"
+              [ "public let const = { (x: Any) -> (_ y: Any) -> Any in"
+              , "  return { (y: Any) -> Any in"
+              , "    return x"
+              , "  }"
+              , "}"
+              ]
 
           actual `shouldEqual` expected
 
@@ -336,14 +341,15 @@ spec = describe "PrettyPrinter" do
             actual = prettyPrint decl
 
             expected :: String
-            expected = ""
-              <> "public let foo = { (x: Any) -> (_ y: Any) -> (_ z: Any) -> Any in\n"
-              <> "  return { (y: Any) -> (_ z: Any) -> Any in\n"
-              <> "    return { (z: Any) -> Any in\n"
-              <> "      return 42\n"
-              <> "    }\n"
-              <> "  }\n"
-              <> "}"
+            expected = intercalate "\n"
+              [ "public let foo = { (x: Any) -> (_ y: Any) -> (_ z: Any) -> Any in"
+              , "  return { (y: Any) -> (_ z: Any) -> Any in"
+              , "    return { (z: Any) -> Any in"
+              , "      return 42"
+              , "    }"
+              , "  }"
+              , "}"
+              ]
 
           actual `shouldEqual` expected
 
@@ -368,10 +374,11 @@ spec = describe "PrettyPrinter" do
             actual = prettyPrint decl
 
             expected :: String
-            expected = ""
-              <> "public let foo = { (x: Any, y: Any) -> Any in\n"
-              <> "  return x\n"
-              <> "}"
+            expected = intercalate "\n"
+              [ "public let foo = { (x: Any, y: Any) -> Any in"
+              , "  return x"
+              , "}"
+              ]
 
           actual `shouldEqual` expected
 
@@ -399,10 +406,11 @@ spec = describe "PrettyPrinter" do
             actual = prettyPrint decl
 
             expected :: String
-            expected = ""
-              <> "public let foo = { (_ x: @autoclosure @escaping (Any) -> Any) -> Any in\n"
-              <> "  return false\n"
-              <> "}"
+            expected = intercalate "\n"
+              [ "public let foo = { (_ x: @autoclosure @escaping (Any) -> Any) -> Any in"
+              , "  return false"
+              , "}"
+              ]
 
           actual `shouldEqual` expected
 
@@ -472,11 +480,12 @@ spec = describe "PrettyPrinter" do
           actual = prettyPrint decl
 
           expected :: String
-          expected = ""
-            <> "foo(\n"
-            <> "  1,\n"
-            <> "  2\n"
-            <> ")"
+          expected = intercalate "\n"
+            [ "foo("
+            , "  1,"
+            , "  2"
+            , ")"
+            ]
 
         actual `shouldEqual` expected
 
@@ -577,10 +586,11 @@ spec = describe "PrettyPrinter" do
           actual = prettyPrint decl
 
           expected :: String
-          expected = ""
-            <> "public enum Foo {\n"
-            <> "  public enum Bar {}\n"
-            <> "}"
+          expected = intercalate "\n"
+            [ "public enum Foo {"
+            , "  public enum Bar {}"
+            , "}"
+            ]
 
         actual `shouldEqual` expected
 
@@ -598,11 +608,12 @@ spec = describe "PrettyPrinter" do
           actual = prettyPrint decl
 
           expected :: String
-          expected = ""
-            <> "public enum Foo {\n"
-            <> "  public enum Bar {}\n"
-            <> "  public static let baz = 42\n"
-            <> "}"
+          expected = intercalate "\n"
+            [ "public enum Foo {"
+            , "  public enum Bar {}"
+            , "  public static let baz = 42"
+            , "}"
+            ]
 
         actual `shouldEqual` expected
 
@@ -634,10 +645,11 @@ spec = describe "PrettyPrinter" do
           actual = prettyPrint decl
 
           expected :: String
-          expected = ""
-            <> "public protocol Foo {\n"
-            <> "  func bar() -> Any\n"
-            <> "}"
+          expected = intercalate "\n"
+            [ "public protocol Foo {"
+            , "  func bar() -> Any"
+            , "}"
+            ]
 
         actual `shouldEqual` expected
 
@@ -661,11 +673,12 @@ spec = describe "PrettyPrinter" do
           actual = prettyPrint decl
 
           expected :: String
-          expected = ""
-            <> "public protocol Foo {\n"
-            <> "  func bar() -> Any\n"
-            <> "  func baz(_: Any) -> Any\n"
-            <> "}"
+          expected = intercalate "\n"
+            [ "public protocol Foo {"
+            , "  func bar() -> Any"
+            , "  func baz(_: Any) -> Any"
+            , "}"
+            ]
 
         actual `shouldEqual` expected
 
@@ -697,10 +710,11 @@ spec = describe "PrettyPrinter" do
           actual = prettyPrint decl
 
           expected :: String
-          expected = ""
-            <> "public struct Foo {\n"
-            <> "  public struct Bar {}\n"
-            <> "}"
+          expected = intercalate "\n"
+            [ "public struct Foo {"
+            , "  public struct Bar {}"
+            , "}"
+            ]
 
         actual `shouldEqual` expected
 
@@ -718,11 +732,12 @@ spec = describe "PrettyPrinter" do
           actual = prettyPrint decl
 
           expected :: String
-          expected = ""
-            <> "public struct Foo {\n"
-            <> "  public struct Bar {}\n"
-            <> "  public static let baz = 42\n"
-            <> "}"
+          expected = intercalate "\n"
+            [ "public struct Foo {"
+            , "  public struct Bar {}"
+            , "  public static let baz = 42"
+            , "}"
+            ]
 
         actual `shouldEqual` expected
 
@@ -754,10 +769,11 @@ spec = describe "PrettyPrinter" do
           actual = prettyPrint decl
 
           expected :: String
-          expected = ""
-            <> "public extension Foo {\n"
-            <> "  public enum Bar {}\n"
-            <> "}"
+          expected = intercalate "\n"
+            [ "public extension Foo {"
+            , "  public enum Bar {}"
+            , "}"
+            ]
 
         actual `shouldEqual` expected
 
@@ -775,11 +791,12 @@ spec = describe "PrettyPrinter" do
           actual = prettyPrint decl
 
           expected :: String
-          expected = ""
-            <> "public extension Foo {\n"
-            <> "  public enum Bar {}\n"
-            <> "  public enum Baz {}\n"
-            <> "}"
+          expected = intercalate "\n"
+            [ "public extension Foo {"
+            , "  public enum Bar {}"
+            , "  public enum Baz {}"
+            , "}"
+            ]
 
         actual `shouldEqual` expected
 

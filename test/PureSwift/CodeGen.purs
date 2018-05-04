@@ -9,6 +9,7 @@ import CoreFn.Ident (Ident(..)) as CoreFn
 import CoreFn.Literal (Literal(..)) as CoreFn
 import CoreFn.Module (FilePath(..), Module(..), ModuleImport(..))
 import CoreFn.Names (ModuleName(..), ProperName(..), Qualified(..))
+import Data.Array (intercalate)
 import Data.Either (Either(..))
 import Data.List (List(..), (:))
 import Data.Map as Map
@@ -89,11 +90,12 @@ spec = describe "CodeGen" do
           : Nil
           )
 
-      expectedString = ""
-        <> "public extension Exports {\n"
-        <> "  public static let exported: String = \"exported\"\n"
-        <> "  internal static let notExported: String = \"not exported\"\n"
-        <> "}"
+      expectedString = intercalate "\n"
+        [ "public extension Exports {"
+        , "  public static let exported: String = \"exported\""
+        , "  internal static let notExported: String = \"not exported\""
+        , "}"
+        ]
 
     actualDecl `shouldEqual` Right expectedDecl
     actualString `shouldEqual` Right expectedString
@@ -179,10 +181,11 @@ spec = describe "CodeGen" do
         : Nil
         )
 
-      expectedString = ""
-        <> "public extension Main {\n"
-        <> "  public static let main = Control.Monad.Eff.Console.log(\"Hello world!\")\n"
-        <> "}"
+      expectedString = intercalate "\n"
+        [ "public extension Main {"
+        , "  public static let main = Control.Monad.Eff.Console.log(\"Hello world!\")"
+        , "}"
+        ]
 
     actualDecl `shouldEqual` Right expectedDecl
     actualString `shouldEqual` Right expectedString
@@ -260,14 +263,15 @@ spec = describe "CodeGen" do
           : Nil
           )
 
-        expectedString = ""
-          <> "public extension Literals {\n"
-          <> "  internal static let int: Int = 42\n"
-          <> "  internal static let float: Float = 3.14\n"
-          <> "  internal static let string: String = \"Hello world!\"\n"
-          <> "  internal static let char: Character = \"a\"\n"
-          <> "  internal static let boolean: Bool = true\n"
-          <> "}"
+        expectedString = intercalate "\n"
+          [ "public extension Literals {"
+          , "  internal static let int: Int = 42"
+          , "  internal static let float: Float = 3.14"
+          , "  internal static let string: String = \"Hello world!\""
+          , "  internal static let char: Character = \"a\""
+          , "  internal static let boolean: Bool = true"
+          , "}"
+          ]
 
       actualDecl `shouldEqual` Right expectedDecl
       actualString `shouldEqual` Right expectedString
@@ -354,16 +358,17 @@ spec = describe "CodeGen" do
           : Nil
           )
 
-        expectedString = ""
-          <> "public extension ArrayLiterals {\n"
-          <> "  internal static let empty = []\n"
-          <> "  internal static let singleItem = [1]\n"
-          <> "  internal static let multipleItems = [\n"
-          <> "    1,\n"
-          <> "    \"Hello world!\",\n"
-          <> "    true\n"
-          <> "  ]\n"
-          <> "}"
+        expectedString = intercalate "\n"
+          [ "public extension ArrayLiterals {"
+          , "  internal static let empty = []"
+          , "  internal static let singleItem = [1]"
+          , "  internal static let multipleItems = ["
+          , "    1,"
+          , "    \"Hello world!\","
+          , "    true"
+          , "  ]"
+          , "}"
+          ]
 
       actualDecl `shouldEqual` Right expectedDecl
       actualString `shouldEqual` Right expectedString
@@ -448,16 +453,17 @@ spec = describe "CodeGen" do
           : Nil
           )
 
-        expectedString = ""
-          <> "public extension DictLiterals {\n"
-          <> "  internal static let empty = [:]\n"
-          <> "  internal static let singleItem = [\"a\": 1]\n"
-          <> "  internal static let multipleItems = [\n"
-          <> "    \"a\": 1,\n"
-          <> "    \"b\": \"Hello world!\",\n"
-          <> "    \"c\": true\n"
-          <> "  ]\n"
-          <> "}"
+        expectedString = intercalate "\n"
+          [ "public extension DictLiterals {"
+          , "  internal static let empty = [:]"
+          , "  internal static let singleItem = [\"a\": 1]"
+          , "  internal static let multipleItems = ["
+          , "    \"a\": 1,"
+          , "    \"b\": \"Hello world!\","
+          , "    \"c\": true"
+          , "  ]"
+          , "}"
+          ]
 
       actualDecl `shouldEqual` Right expectedDecl
       actualString `shouldEqual` Right expectedString
@@ -549,15 +555,16 @@ spec = describe "CodeGen" do
         : Nil
         )
 
-      expectedString = ""
-        <> "public extension MutRec {\n"
-        <> "  internal static let f: (Any) -> Any = { (_ x: Any) -> Any in\n"
-        <> "    return MutRec.g(x)\n"
-        <> "  }\n"
-        <> "  internal static let g: (Any) -> Any = { (_ x: Any) -> Any in\n"
-        <> "    return MutRec.f(x)\n"
-        <> "  }\n"
-        <> "}"
+      expectedString = intercalate "\n"
+        [ "public extension MutRec {"
+        , "  internal static let f: (Any) -> Any = { (_ x: Any) -> Any in"
+        , "    return MutRec.g(x)"
+        , "  }"
+        , "  internal static let g: (Any) -> Any = { (_ x: Any) -> Any in"
+        , "    return MutRec.f(x)"
+        , "  }"
+        , "}"
+        ]
 
     actualDecl `shouldEqual` Right expectedDecl
     actualString `shouldEqual` Right expectedString
@@ -654,14 +661,15 @@ spec = describe "CodeGen" do
         : Nil
         )
 
-      expectedString = ""
-        <> "public extension HigherOrder {\n"
-        <> "  public static let hof: (@escaping (Any) -> Any) -> (Any) -> Any = { (_ f: @escaping (_ x: Any) -> Any) -> (_ x: Any) -> Any in\n"
-        <> "    return { (_ x: Any) -> Any in\n"
-        <> "      return f(x)\n"
-        <> "    }\n"
-        <> "  }\n"
-        <> "}"
+      expectedString = intercalate "\n"
+        [ "public extension HigherOrder {"
+        , "  public static let hof: (@escaping (Any) -> Any) -> (Any) -> Any = { (_ f: @escaping (_ x: Any) -> Any) -> (_ x: Any) -> Any in"
+        , "    return { (_ x: Any) -> Any in"
+        , "      return f(x)"
+        , "    }"
+        , "  }"
+        , "}"
+        ]
 
     actualDecl `shouldEqual` Right expectedDecl
     actualString `shouldEqual` Right expectedString
@@ -723,10 +731,11 @@ spec = describe "CodeGen" do
           : Nil
           )
 
-        expectedString = ""
-          <> "public extension Keywords {\n"
-          <> "  internal static let `class`: Bool = true\n"
-          <> "}"
+        expectedString = intercalate "\n"
+          [ "public extension Keywords {"
+          , "  internal static let `class`: Bool = true"
+          , "}"
+          ]
 
       actualDecl `shouldEqual` Right expectedDecl
       actualString `shouldEqual` Right expectedString
@@ -787,10 +796,11 @@ spec = describe "CodeGen" do
           : Nil
           )
 
-        expectedString = ""
-          <> "public extension Characters {\n"
-          <> "  internal static let foo$prime: Bool = true\n"
-          <> "}"
+        expectedString = intercalate "\n"
+          [ "public extension Characters {"
+          , "  internal static let foo$prime: Bool = true"
+          , "}"
+          ]
 
       actualDecl `shouldEqual` Right expectedDecl
       actualString `shouldEqual` Right expectedString
