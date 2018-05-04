@@ -2,11 +2,12 @@ module Test.PureSwift.CodeGen where
 
 import Prelude
 
-import CoreFn.Ann (SourcePos(..), SourceSpan(..), ssAnn)
-import CoreFn.Expr (Bind(..), Expr(Abs, App, Var))
+import CoreFn.Expr (Bind(..), Expr(Abs, Accessor, App, Var))
+import CoreFn.Ann (Ann(..), SourcePos(..), SourceSpan(..), ssAnn)
 import CoreFn.Expr (Expr(Literal)) as CoreFn
 import CoreFn.Ident (Ident(..)) as CoreFn
 import CoreFn.Literal (Literal(..)) as CoreFn
+import CoreFn.Meta (Meta(..))
 import CoreFn.Module (FilePath(..), Module(..), ModuleImport(..))
 import CoreFn.Names (ModuleName(..), ProperName(..), Qualified(..))
 import Data.Array (intercalate)
@@ -804,3 +805,173 @@ spec = describe "CodeGen" do
 
       actualDecl `shouldEqual` Right expectedDecl
       actualString `shouldEqual` Right expectedString
+
+  describe "Typeclass" do
+    describe "definitions" do
+      it "without inheritance" do
+        let
+          moduleComments = []
+
+          moduleName = ModuleName [ ProperName "Data", ProperName "MyShow" ]
+
+          modulePath = FilePath "src/Data/MyShow.purs"
+
+          moduleImports =
+            [ ModuleImport
+                { ann: ssAnn $ SourceSpan
+                    { spanName: unwrap modulePath
+                    , spanStart: SourcePos { sourcePosLine: 1, sourcePosColumn: 1 }
+                    , spanEnd: SourcePos { sourcePosLine: 4, sourcePosColumn: 18 }
+                    }
+                , moduleName: ModuleName [ ProperName "Prim" ]
+                }
+            ]
+
+          moduleExports =
+            [ CoreFn.Ident "MyShow"
+            , CoreFn.Ident "myShow"
+            ]
+
+          moduleForeign = []
+
+          moduleDecls =
+            [ NonRec
+                (ssAnn $ SourceSpan
+                   { spanName: unwrap modulePath
+                   , spanStart: SourcePos { sourcePosLine: 3, sourcePosColumn: 1 }
+                   , spanEnd: SourcePos { sourcePosLine: 4, sourcePosColumn: 18 }
+                   }
+                )
+                (CoreFn.Ident "MyShow")
+                (Abs
+                  (Ann
+                     { sourceSpan:
+                         SourceSpan
+                           { spanName: unwrap modulePath
+                           , spanStart: SourcePos { sourcePosLine: 3, sourcePosColumn: 1 }
+                           , spanEnd: SourcePos { sourcePosLine: 4, sourcePosColumn: 18 }
+                           }
+                     , comments: []
+                     , type: Nothing
+                     , meta: Just IsTypeClassConstructor
+                     }
+                  )
+                  (CoreFn.Ident "myShow")
+                  (CoreFn.Literal
+                    (ssAnn $ SourceSpan
+                       { spanName: unwrap modulePath
+                       , spanStart: SourcePos { sourcePosLine: 3, sourcePosColumn: 1 }
+                       , spanEnd: SourcePos { sourcePosLine: 4, sourcePosColumn: 18 }
+                       }
+                    )
+                    (CoreFn.ObjectLiteral
+                      [ (Tuple
+                          "myShow"
+                          (Var
+                            (ssAnn $ SourceSpan
+                               { spanName: unwrap modulePath
+                               , spanStart: SourcePos { sourcePosLine: 3, sourcePosColumn: 1 }
+                               , spanEnd: SourcePos { sourcePosLine: 4, sourcePosColumn: 18 }
+                               }
+                            )
+                            (Qualified Nothing (CoreFn.Ident "myShow"))
+                          )
+                        )
+                      ]
+                    )
+                  )
+                )
+            , NonRec
+                (ssAnn $ SourceSpan
+                  { spanName: unwrap modulePath
+                  , spanStart: SourcePos { sourcePosLine: 4, sourcePosColumn: 3 }
+                  , spanEnd: SourcePos { sourcePosLine: 4, sourcePosColumn: 18 }
+                  }
+                )
+                (CoreFn.Ident "myShow")
+                (Abs
+                  (ssAnn $ SourceSpan
+                     { spanName: unwrap modulePath
+                     , spanStart: SourcePos { sourcePosLine: 4, sourcePosColumn: 3 }
+                     , spanEnd: SourcePos { sourcePosLine: 4, sourcePosColumn: 18 }
+                     }
+                  )
+                  (CoreFn.Ident "dict")
+                  (Accessor
+                    (ssAnn $ SourceSpan
+                       { spanName: unwrap modulePath
+                       , spanStart: SourcePos { sourcePosLine: 4, sourcePosColumn: 3 }
+                       , spanEnd: SourcePos { sourcePosLine: 4, sourcePosColumn: 18 }
+                       }
+                    )
+                    "myShow"
+                    (Var
+                      (ssAnn $ SourceSpan
+                         { spanName: unwrap modulePath
+                         , spanStart: SourcePos { sourcePosLine: 4, sourcePosColumn: 3 }
+                         , spanEnd: SourcePos { sourcePosLine: 4, sourcePosColumn: 18 }
+                         }
+                      )
+                      (Qualified Nothing (CoreFn.Ident "dict"))
+                    )
+                  )
+                )
+            ]
+
+          mod =
+            Module
+              { moduleComments
+              , moduleName
+              , modulePath
+              , moduleImports
+              , moduleExports
+              , moduleForeign
+              , moduleDecls
+              }
+
+          -- typeclassProtocol =
+
+          -- expectedDecl =
+          --   TopLevel
+          --     ( Declaration typeclassProtocol
+          --     , Declaration extensionFor
+          --     : Nil
+          --     )
+
+          actualString = "FIXME"
+
+          expectedString = intercalate "\n"
+            [ "public protocol Data_MyShow_MyShow {"
+            , "  func myShow(_ v: Any) -> Any"
+            , "}"
+            , "public extension Data.MyShow {"
+            , "  typealias MyShow = Data_MyShow_MyShow"
+            , "  static public let myShow: (Data.MyShow.MyShow) -> ((Any) -> Any) = { dict in"
+            , "    return dict.myShow"
+            , "  }"
+            , "}"
+            , "public protocol Data_MyShow_MyShowString: Data.Show.MyShow {}"
+            , "public extension Data.MyShow {"
+            , "  typealias MyShowString = Data_MyShow_MyShowString"
+            , "}"
+            , "public extension Data.MyShow.MyShowString {"
+            , "  public func myShow(_ v: Any) -> Any {"
+            , "    return Data.MyShow.myShow(Data.MyShow.myShowStringImpl)"
+            , "  }"
+            , "}"
+            , "public extension Data.MyShow {"
+            , "  public let myShowString: Data.MyShow.MyShowString = {"
+            , "    struct Anon: Data.MyShow.MyShowString {}"
+            , "    return Anon()"
+            , "  }"
+            , "}"
+            ]
+
+        actualString `shouldEqual` expectedString
+
+      -- it "with instances" do
+      -- (Right (Module { moduleComments: [], moduleName: ["Data","MyShow"], modulePath: (FilePath ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs"), moduleImports: [(ModuleImport { ann: (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 1, sourcePosColumn: 1}), spanEnd: (SourcePos { sourcePosLine: 9, sourcePosColumn: 46})}), comments: [], type: Nothing, meta: Nothing}), moduleName: ["Data","MyShow"]}),(ModuleImport { ann: (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 1, sourcePosColumn: 1}), spanEnd: (SourcePos { sourcePosLine: 9, sourcePosColumn: 46})}), comments: [], type: Nothing, meta: Nothing}), moduleName: ["Prim"]})], moduleExports: [(Ident "MyShow"),(Ident "myShow"),(Ident "myShowString")], moduleForeign: [(Ident "myShowStringImpl")], moduleDecls: [(NonRec (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 3, sourcePosColumn: 1}), spanEnd: (SourcePos { sourcePosLine: 4, sourcePosColumn: 24})}), comments: [], type: Nothing, meta: Nothing}) (Ident "MyShow") (Abs (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 3, sourcePosColumn: 1}), spanEnd: (SourcePos { sourcePosLine: 4, sourcePosColumn: 24})}), comments: [], type: Nothing, meta: (Just IsTypeClassConstructor)}) (Ident "myShow") (Literal (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 3, sourcePosColumn: 1}), spanEnd: (SourcePos { sourcePosLine: 4, sourcePosColumn: 24})}), comments: [], type: Nothing, meta: Nothing}) (ObjectLiteral[(Tuple "myShow" (Var (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 3, sourcePosColumn: 1}), spanEnd: (SourcePos { sourcePosLine: 4, sourcePosColumn: 24})}), comments: [], type: Nothing, meta: Nothing}) (Qualified Nothing(Ident "myShow"))))])))),(NonRec (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 6, sourcePosColumn: 1}), spanEnd: (SourcePos { sourcePosLine: 6, sourcePosColumn: 39})}), comments: [], type: Nothing, meta: Nothing}) (Ident "myShowString") (App (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 6, sourcePosColumn: 1}), spanEnd: (SourcePos { sourcePosLine: 6, sourcePosColumn: 39})}), comments: [], type: Nothing, meta: Nothing}) (Var (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 6, sourcePosColumn: 1}), spanEnd: (SourcePos { sourcePosLine: 6, sourcePosColumn: 39})}), comments: [], type: Nothing, meta: (Just IsTypeClassConstructor)}) (Qualified (Just ["Data","MyShow"])(Ident "MyShow"))) (Var (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 7, sourcePosColumn: 12}), spanEnd: (SourcePos { sourcePosLine: 7, sourcePosColumn: 28})}), comments: [], type: Nothing, meta: (Just IsForeign)}) (Qualified (Just ["Data","MyShow"])(Ident "myShowStringImpl"))))),(NonRec (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 4, sourcePosColumn: 3}), spanEnd: (SourcePos { sourcePosLine: 4, sourcePosColumn: 24})}), comments: [], type: Nothing, meta: Nothing}) (Ident "myShow") (Abs (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 4, sourcePosColumn: 3}), spanEnd: (SourcePos { sourcePosLine: 4, sourcePosColumn: 24})}), comments: [], type: Nothing, meta: Nothing}) (Ident "dict") (Accessor (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 4, sourcePosColumn: 3}), spanEnd: (SourcePos { sourcePosLine: 4, sourcePosColumn: 24})}), comments: [], type: Nothing, meta: Nothing}) "myShow" (Var (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 4, sourcePosColumn: 3}), spanEnd: (SourcePos { sourcePosLine: 4, sourcePosColumn: 24})}), comments: [], type: Nothing, meta: Nothing}) (Qualified Nothing(Ident "dict"))))))]}))
+
+      -- it "with inheritance" do
+
+    -- describe "instances"
