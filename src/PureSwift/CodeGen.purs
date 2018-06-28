@@ -4,10 +4,12 @@ module PureSwift.CodeGen
 
 import Prelude
 
+import CoreFn.Ann (Ann)
 import CoreFn.Expr (Bind(..), Expr(Abs, Accessor, App, Case, Constructor, ObjectUpdate, Let, Var))
 import CoreFn.Expr (Expr(Literal)) as CoreFn
 import CoreFn.Ident (Ident(..)) as CoreFn
 import CoreFn.Literal (Literal(..)) as CoreFn
+import CoreFn.Meta (Meta(..))
 import CoreFn.Module (Module(..))
 import CoreFn.Names (ModuleName(..), Qualified(..))
 import Data.Array (concat, intercalate)
@@ -25,30 +27,53 @@ import Data.Newtype (unwrap)
 import Data.String (singleton, toCharArray)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
-import PureSwift.AST (AccessMod(..), Attribute(..), Decl(..), DeclMod(..), Exp(..), FunctionTypeArg(..), Ident(..), Lit(..), Statement(..), Type(..))
+import PureSwift.AST (AccessMod(..), Attribute(..), Decl(..), DeclMod(..), Exp(..), FunctionTypeArg(..), Ident(..), Lit(..), ProtocolMemberDecl, Statement(..), Type(..))
 
-moduleToSwift :: forall a. Module a -> Either String Decl
+moduleToSwift :: Module Ann -> Either String Decl
 moduleToSwift (Module mod) = TopLevel <$> statements
-  where
-  decls :: Either String (List Decl)
-  decls = foldr (append <<< declToSwift) (Right Nil) (List.fromFoldable mod.moduleDecls)
 
-  extension :: Either String Decl
-  extension = Extension (AccessModifier Public : Nil) (moduleNameToSwift mod.moduleName) Nil <$> decls
+  where
 
   statements :: Either String (List Statement)
   statements = do
-    extension' <- extension
-    pure ( Declaration extension' : Nil )
+    { yes, no } <- decls mod.moduleDecls
+    pure $ ( Declaration <$> yes ) <> ( Declaration (extension no) : Nil )
+
+  decls :: Array (Bind Ann) -> Either String { yes :: List Decl, no :: List Decl }
+  decls bs = foldr step (Right { yes: Nil, no: Nil }) (List.fromFoldable bs)
+
+  step
+    :: Bind Ann
+    -> Either String { yes :: List Decl, no :: List Decl }
+    -> Either String { yes :: List Decl, no :: List Decl }
+  step _ state@(Left _) = state
+  step b (Right state) = case b of
+    NonRec a i e
+      | Abs ann _ _ <- e, isTypeClassConstructor ann -> do
+          ident <- protocolIdentToSwift mod.moduleName i
+          let d = protocol ident Nil -- FIXME: protocol members
+          pure $ state { yes = d : state.yes }
+      | otherwise -> do
+          d <- bindingToSwift (Tuple (Tuple a i) e)
+          pure $ state { no = d : state.no  }
+    Rec bs -> do
+      ds <- traverse bindingToSwift $ List.fromFoldable bs
+      pure $ state { no = ds <> state.no  }
+
+  protocolIdentToSwift :: ModuleName -> CoreFn.Ident -> Either String Ident
+  protocolIdentToSwift (ModuleName mn) i = do
+    ident <- identToSwift i
+    let components = (unwrap <$> mn) <> [ unwrap ident ]
+    pure $ Ident $ intercalate "_" components
+
+  protocol :: Ident -> List ProtocolMemberDecl -> Decl
+  protocol i ds = Protocol (AccessModifier Public : Nil) i Nil ds
+
+  extension :: List Decl -> Decl
+  extension ds = Extension (AccessModifier Public : Nil) (moduleNameToSwift mod.moduleName) Nil ds
 
   moduleNameToSwift :: ModuleName -> Ident
   moduleNameToSwift (ModuleName mn) = Ident $ intercalate "." (unwrap <$> mn)
-
-  declToSwift :: Bind a -> Either String (List Decl)
-  declToSwift (NonRec a i e) = do
-    decl <- bindingToSwift (Tuple (Tuple a i) e)
-    pure $ List.singleton decl
-  declToSwift (Rec bs) = traverse bindingToSwift $ List.fromFoldable bs
 
   removeAttributes :: FunctionTypeArg -> FunctionTypeArg
   removeAttributes (FunctionTypeArg e i _ t) = FunctionTypeArg e i Nil t
@@ -83,7 +108,7 @@ moduleToSwift (Module mod) = TopLevel <$> statements
     BooleanLit _ -> Just BoolType
     _ -> Nothing
 
-  bindingToSwift :: Tuple (Tuple a CoreFn.Ident) (CoreFn.Expr a) -> Either String Decl
+  bindingToSwift :: Tuple (Tuple Ann CoreFn.Ident) (CoreFn.Expr Ann) -> Either String Decl
   bindingToSwift (Tuple (Tuple _ ident) expr) = do
     ident' <- identToSwift ident
     exp <- exprToSwift expr
@@ -266,7 +291,7 @@ moduleToSwift (Module mod) = TopLevel <$> statements
     , "willSet"
     ]
 
-  exprToSwift :: CoreFn.Expr a -> Either String Exp
+  exprToSwift :: CoreFn.Expr Ann -> Either String Exp
   exprToSwift (CoreFn.Literal _ l) = Literal <$> literalToSwift l
   exprToSwift (Constructor _ tn cn fs) = Right $ Literal $ StringLit "/* FIXME: Constructor Exp */"
   exprToSwift (Accessor _ s e) = ExplicitMember <$> exprToSwift e <@> Ident s
@@ -313,7 +338,7 @@ moduleToSwift (Module mod) = TopLevel <$> statements
   exprToSwift (Case _ es cs) = Right $ Literal $ StringLit "/* FIXME: Case Exp */"
   exprToSwift (Let _ bs e) = Right $ Literal $ StringLit "/* FIXME: Let Exp */"
 
-  literalToSwift :: CoreFn.Literal (Expr a) -> Either String Lit
+  literalToSwift :: CoreFn.Literal (Expr Ann) -> Either String Lit
   literalToSwift (CoreFn.NumericLiteral x) = Right $ either IntLit FloatLit x
   literalToSwift (CoreFn.StringLiteral x) = Right $ StringLit x
   literalToSwift (CoreFn.CharLiteral x) = Right $ CharLit x
@@ -321,7 +346,7 @@ moduleToSwift (Module mod) = TopLevel <$> statements
   literalToSwift (CoreFn.ArrayLiteral xs) = ArrayLit <$> traverse exprToSwift (List.fromFoldable xs)
   literalToSwift (CoreFn.ObjectLiteral xs) = DictLit <<< Map.fromFoldable <$> xs'
     where
-    bitraverseTuple :: Tuple String (CoreFn.Expr a) -> Either String (Tuple Exp Exp)
+    bitraverseTuple :: Tuple String (CoreFn.Expr Ann) -> Either String (Tuple Exp Exp)
     bitraverseTuple = bitraverse (Right <<< Literal <<< StringLit) exprToSwift
 
     xs' :: Either String (Array (Tuple Exp Exp))
@@ -334,3 +359,17 @@ moduleToSwift (Module mod) = TopLevel <$> statements
       Nothing -> Identifier <$> ident
     where
       ident = identToSwift i
+
+isTypeClassConstructor :: Ann -> Boolean
+isTypeClassConstructor =
+  unwrap
+    >>> _.meta
+    >>> map isTypeClassConstructor'
+    >>> eq (Just true)
+
+  where
+
+  isTypeClassConstructor' :: Meta -> Boolean
+  isTypeClassConstructor' = case _ of
+    IsTypeClassConstructor -> true
+    _ -> false

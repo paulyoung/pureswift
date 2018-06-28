@@ -2,8 +2,8 @@ module Test.PureSwift.CodeGen where
 
 import Prelude
 
-import CoreFn.Expr (Bind(..), Expr(Abs, Accessor, App, Var))
 import CoreFn.Ann (Ann(..), SourcePos(..), SourceSpan(..), ssAnn)
+import CoreFn.Expr (Bind(..), Expr(Abs, Accessor, App, Var))
 import CoreFn.Expr (Expr(Literal)) as CoreFn
 import CoreFn.Ident (Ident(..)) as CoreFn
 import CoreFn.Literal (Literal(..)) as CoreFn
@@ -17,11 +17,18 @@ import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Tuple (Tuple(..))
-import PureSwift.AST (AccessMod(..), Attribute(..), Decl(..), DeclMod(..), Exp(..), FunctionTypeArg(..), Ident(..), Lit(..), Statement(..), Type(..))
+import PureSwift.AST (AccessMod(..), Attribute(..), Decl(..), DeclMod(..), Exp(..), FunctionTypeArg(..), Ident(..), Lit(..), ProtocolMemberDecl(..), Statement(..), Type(..))
 import PureSwift.CodeGen (moduleToSwift)
 import PureSwift.PrettyPrinter (prettyPrint)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
+
+emptyAnn :: Ann
+emptyAnn = ssAnn $ SourceSpan
+  { spanName: ""
+  , spanStart: SourcePos { sourcePosLine: 0, sourcePosColumn: 0 }
+  , spanEnd: SourcePos { sourcePosLine: 0, sourcePosColumn: 0 }
+  }
 
 spec :: forall r. Spec r Unit
 spec = describe "CodeGen" do
@@ -35,11 +42,7 @@ spec = describe "CodeGen" do
 
       moduleImports =
         [ ModuleImport
-            { ann: ssAnn $ SourceSpan
-                { spanName: unwrap modulePath
-                , spanStart: SourcePos { sourcePosLine: 1, sourcePosColumn: 1 }
-                , spanEnd: SourcePos { sourcePosLine: 3, sourcePosColumn: 8 }
-                }
+            { ann: emptyAnn
             , moduleName: ModuleName [ ProperName "Prim" ]
             }
         ]
@@ -48,12 +51,12 @@ spec = describe "CodeGen" do
 
       moduleForeign = []
 
-      exported = CoreFn.Literal unit $ CoreFn.StringLiteral "exported"
-      notExported = CoreFn.Literal unit $ CoreFn.StringLiteral "not exported"
+      exported = CoreFn.Literal emptyAnn $ CoreFn.StringLiteral "exported"
+      notExported = CoreFn.Literal emptyAnn $ CoreFn.StringLiteral "not exported"
 
       moduleDecls =
-        [ NonRec unit (CoreFn.Ident "exported") exported
-        , NonRec unit (CoreFn.Ident "notExported") notExported
+        [ NonRec emptyAnn (CoreFn.Ident "exported") exported
+        , NonRec emptyAnn (CoreFn.Ident "notExported") notExported
         ]
 
       mod = Module
@@ -106,11 +109,11 @@ spec = describe "CodeGen" do
       declIdent = CoreFn.Ident "main"
       declModuleName = Just $ ModuleName [ ProperName "Control.Monad.Eff.Console" ]
       declQualifier = Qualified declModuleName (CoreFn.Ident "log")
-      declVar = Var unit declQualifier
-      declLiteral = CoreFn.Literal unit $ CoreFn.StringLiteral "Hello world!"
+      declVar = Var emptyAnn declQualifier
+      declLiteral = CoreFn.Literal emptyAnn $ CoreFn.StringLiteral "Hello world!"
 
-      declExpr = App unit declVar declLiteral
-      decl = NonRec unit declIdent declExpr
+      declExpr = App emptyAnn declVar declLiteral
+      decl = NonRec emptyAnn declIdent declExpr
 
       moduleComments = []
 
@@ -120,35 +123,19 @@ spec = describe "CodeGen" do
 
       moduleImports =
         [ ModuleImport
-            { ann: ssAnn $ SourceSpan
-                { spanName: unwrap modulePath
-                , spanStart: SourcePos { sourcePosLine: 1, sourcePosColumn: 1 }
-                , spanEnd: SourcePos { sourcePosLine: 5, sourcePosColumn: 26 }
-                }
+            { ann: emptyAnn
             , moduleName: ModuleName [ ProperName "Prim" ]
             }
         , ModuleImport
-            { ann: ssAnn $ SourceSpan
-                { spanName: unwrap modulePath
-                , spanStart: SourcePos { sourcePosLine: 1, sourcePosColumn: 3 }
-                , spanEnd: SourcePos { sourcePosLine: 3, sourcePosColumn: 15 }
-                }
+            { ann: emptyAnn
             , moduleName: ModuleName [ ProperName "Prelude" ]
             }
         , ModuleImport
-            { ann: ssAnn $ SourceSpan
-                { spanName: unwrap modulePath
-                , spanStart: SourcePos { sourcePosLine: 4, sourcePosColumn: 1 }
-                , spanEnd: SourcePos { sourcePosLine: 4, sourcePosColumn: 25 }
-                }
+            { ann: emptyAnn
             , moduleName: ModuleName [ ProperName "Control.Monad.Eff" ]
             }
         , ModuleImport
-            { ann: ssAnn $ SourceSpan
-                { spanName: unwrap modulePath
-                , spanStart: SourcePos { sourcePosLine: 5, sourcePosColumn: 1 }
-                , spanEnd: SourcePos { sourcePosLine: 5, sourcePosColumn: 26 }
-                }
+            { ann: emptyAnn
             , moduleName: ModuleName [ ProperName "Control.Monad.Eff.Console" ]
             }
         ]
@@ -194,11 +181,11 @@ spec = describe "CodeGen" do
   describe "Literals" do
     it "Int, Float, String, Char, Boolean" do
       let
-        intLiteral = CoreFn.Literal unit $ CoreFn.NumericLiteral (Left 42)
-        floatLiteral = CoreFn.Literal unit $ CoreFn.NumericLiteral (Right 3.14)
-        stringLiteral = CoreFn.Literal unit $ CoreFn.StringLiteral "Hello world!"
-        charLiteral = CoreFn.Literal unit $ CoreFn.CharLiteral 'a'
-        booleanLiteral = CoreFn.Literal unit $ CoreFn.BooleanLiteral true
+        intLiteral = CoreFn.Literal emptyAnn $ CoreFn.NumericLiteral (Left 42)
+        floatLiteral = CoreFn.Literal emptyAnn $ CoreFn.NumericLiteral (Right 3.14)
+        stringLiteral = CoreFn.Literal emptyAnn $ CoreFn.StringLiteral "Hello world!"
+        charLiteral = CoreFn.Literal emptyAnn $ CoreFn.CharLiteral 'a'
+        booleanLiteral = CoreFn.Literal emptyAnn $ CoreFn.BooleanLiteral true
 
         moduleComments = []
 
@@ -208,11 +195,7 @@ spec = describe "CodeGen" do
 
         moduleImports =
           [ ModuleImport
-              { ann: ssAnn $ SourceSpan
-                  { spanName: unwrap modulePath
-                  , spanStart: SourcePos { sourcePosLine: 1, sourcePosColumn: 1 }
-                  , spanEnd: SourcePos { sourcePosLine: 3, sourcePosColumn: 8 }
-                  }
+              { ann: emptyAnn
               , moduleName: ModuleName [ ProperName "Prim" ]
               }
           ]
@@ -222,11 +205,11 @@ spec = describe "CodeGen" do
         moduleForeign = []
 
         moduleDecls =
-          [ NonRec unit (CoreFn.Ident "int") intLiteral
-          , NonRec unit (CoreFn.Ident "float") floatLiteral
-          , NonRec unit (CoreFn.Ident "string") stringLiteral
-          , NonRec unit (CoreFn.Ident "char") charLiteral
-          , NonRec unit (CoreFn.Ident "boolean") booleanLiteral
+          [ NonRec emptyAnn (CoreFn.Ident "int") intLiteral
+          , NonRec emptyAnn (CoreFn.Ident "float") floatLiteral
+          , NonRec emptyAnn (CoreFn.Ident "string") stringLiteral
+          , NonRec emptyAnn (CoreFn.Ident "char") charLiteral
+          , NonRec emptyAnn (CoreFn.Ident "boolean") booleanLiteral
           ]
 
         mod = Module
@@ -279,16 +262,16 @@ spec = describe "CodeGen" do
 
     it "array" do
       let
-        empty = CoreFn.Literal unit $ CoreFn.ArrayLiteral []
+        empty = CoreFn.Literal emptyAnn $ CoreFn.ArrayLiteral []
 
-        singleItem = CoreFn.Literal unit $ CoreFn.ArrayLiteral
-          [ CoreFn.Literal unit $ CoreFn.NumericLiteral (Left 1)
+        singleItem = CoreFn.Literal emptyAnn $ CoreFn.ArrayLiteral
+          [ CoreFn.Literal emptyAnn $ CoreFn.NumericLiteral (Left 1)
           ]
 
-        multipleItems = CoreFn.Literal unit $ CoreFn.ArrayLiteral
-          [ CoreFn.Literal unit $ CoreFn.NumericLiteral (Left 1)
-          , CoreFn.Literal unit $ CoreFn.StringLiteral "Hello world!"
-          , CoreFn.Literal unit $ CoreFn.BooleanLiteral true
+        multipleItems = CoreFn.Literal emptyAnn $ CoreFn.ArrayLiteral
+          [ CoreFn.Literal emptyAnn $ CoreFn.NumericLiteral (Left 1)
+          , CoreFn.Literal emptyAnn $ CoreFn.StringLiteral "Hello world!"
+          , CoreFn.Literal emptyAnn $ CoreFn.BooleanLiteral true
           ]
 
         moduleComments = []
@@ -299,11 +282,7 @@ spec = describe "CodeGen" do
 
         moduleImports =
           [ ModuleImport
-              { ann: ssAnn $ SourceSpan
-                  { spanName: unwrap modulePath
-                  , spanStart: SourcePos { sourcePosLine: 1, sourcePosColumn: 1 }
-                  , spanEnd: SourcePos { sourcePosLine: 3, sourcePosColumn: 8 }
-                  }
+              { ann: emptyAnn
               , moduleName: ModuleName [ ProperName "Prim" ]
               }
           ]
@@ -313,9 +292,9 @@ spec = describe "CodeGen" do
         moduleForeign = []
 
         moduleDecls =
-          [ NonRec unit (CoreFn.Ident "empty") empty
-          , NonRec unit (CoreFn.Ident "singleItem") singleItem
-          , NonRec unit (CoreFn.Ident "multipleItems") multipleItems
+          [ NonRec emptyAnn (CoreFn.Ident "empty") empty
+          , NonRec emptyAnn (CoreFn.Ident "singleItem") singleItem
+          , NonRec emptyAnn (CoreFn.Ident "multipleItems") multipleItems
           ]
 
         mod = Module
@@ -376,16 +355,16 @@ spec = describe "CodeGen" do
 
     it "dict" do
       let
-        empty = CoreFn.Literal unit $ CoreFn.ObjectLiteral []
+        empty = CoreFn.Literal emptyAnn $ CoreFn.ObjectLiteral []
 
-        singleItem = CoreFn.Literal unit $ CoreFn.ObjectLiteral
-          [ Tuple "a" (CoreFn.Literal unit $ CoreFn.NumericLiteral (Left 1))
+        singleItem = CoreFn.Literal emptyAnn $ CoreFn.ObjectLiteral
+          [ Tuple "a" (CoreFn.Literal emptyAnn $ CoreFn.NumericLiteral (Left 1))
           ]
 
-        multipleItems = CoreFn.Literal unit $ CoreFn.ObjectLiteral
-          [ Tuple "a" (CoreFn.Literal unit $ CoreFn.NumericLiteral (Left 1))
-          , Tuple "b" (CoreFn.Literal unit $ CoreFn.StringLiteral "Hello world!")
-          , Tuple "c" (CoreFn.Literal unit $ CoreFn.BooleanLiteral true)
+        multipleItems = CoreFn.Literal emptyAnn $ CoreFn.ObjectLiteral
+          [ Tuple "a" (CoreFn.Literal emptyAnn $ CoreFn.NumericLiteral (Left 1))
+          , Tuple "b" (CoreFn.Literal emptyAnn $ CoreFn.StringLiteral "Hello world!")
+          , Tuple "c" (CoreFn.Literal emptyAnn $ CoreFn.BooleanLiteral true)
           ]
 
         moduleComments = []
@@ -396,11 +375,7 @@ spec = describe "CodeGen" do
 
         moduleImports =
           [ ModuleImport
-              { ann: ssAnn $ SourceSpan
-                  { spanName: unwrap modulePath
-                  , spanStart: SourcePos { sourcePosLine: 1, sourcePosColumn: 1 }
-                  , spanEnd: SourcePos { sourcePosLine: 3, sourcePosColumn: 8 }
-                  }
+              { ann: emptyAnn
               , moduleName: ModuleName [ ProperName "Prim" ]
               }
           ]
@@ -410,9 +385,9 @@ spec = describe "CodeGen" do
         moduleForeign = []
 
         moduleDecls =
-          [ NonRec unit (CoreFn.Ident "empty") empty
-          , NonRec unit (CoreFn.Ident "singleItem") singleItem
-          , NonRec unit (CoreFn.Ident "multipleItems") multipleItems
+          [ NonRec emptyAnn (CoreFn.Ident "empty") empty
+          , NonRec emptyAnn (CoreFn.Ident "singleItem") singleItem
+          , NonRec emptyAnn (CoreFn.Ident "multipleItems") multipleItems
           ]
 
         mod = Module
@@ -474,20 +449,20 @@ spec = describe "CodeGen" do
       fIdent = CoreFn.Ident "f"
       fModuleName = Just $ ModuleName [ ProperName "MutRec" ]
       fQualified = Qualified fModuleName (CoreFn.Ident "g")
-      fAppVar1 = Var unit fQualified
-      fAppVar2 = Var unit (Qualified Nothing (CoreFn.Ident "x"))
-      fApp = App unit fAppVar1 fAppVar2
-      fAbs = Abs unit (CoreFn.Ident "x") fApp
-      fBinding = Tuple (Tuple unit fIdent) fAbs
+      fAppVar1 = Var emptyAnn fQualified
+      fAppVar2 = Var emptyAnn (Qualified Nothing (CoreFn.Ident "x"))
+      fApp = App emptyAnn fAppVar1 fAppVar2
+      fAbs = Abs emptyAnn (CoreFn.Ident "x") fApp
+      fBinding = Tuple (Tuple emptyAnn fIdent) fAbs
 
       gIdent = CoreFn.Ident "g"
       gModuleName = Just $ ModuleName [ ProperName "MutRec" ]
       gQualified = Qualified gModuleName (CoreFn.Ident "f")
-      gAppVar1 = Var unit gQualified
-      gAppVar2 = Var unit (Qualified Nothing (CoreFn.Ident "x"))
-      gApp = App unit gAppVar1 gAppVar2
-      gAbs = Abs unit (CoreFn.Ident "x") gApp
-      gBinding = Tuple (Tuple unit gIdent) gAbs
+      gAppVar1 = Var emptyAnn gQualified
+      gAppVar2 = Var emptyAnn (Qualified Nothing (CoreFn.Ident "x"))
+      gApp = App emptyAnn gAppVar1 gAppVar2
+      gAbs = Abs emptyAnn (CoreFn.Ident "x") gApp
+      gBinding = Tuple (Tuple emptyAnn gIdent) gAbs
 
       moduleComments = []
 
@@ -497,11 +472,7 @@ spec = describe "CodeGen" do
 
       moduleImports =
         [ ModuleImport
-            { ann: ssAnn $ SourceSpan
-                { spanName: unwrap modulePath
-                , spanStart: SourcePos { sourcePosLine: 1, sourcePosColumn: 1 }
-                , spanEnd: SourcePos { sourcePosLine: 3, sourcePosColumn: 8 }
-                }
+            { ann: emptyAnn
             , moduleName: ModuleName [ ProperName "Prim" ]
             }
         ]
@@ -572,11 +543,11 @@ spec = describe "CodeGen" do
 
   it "higher-order functions" do
     let
-      abs1 = Abs unit (CoreFn.Ident "f") abs2
-      abs2 = Abs unit (CoreFn.Ident "x") app
-      app = App unit fVar xVar
-      fVar = Var unit $ Qualified Nothing $ CoreFn.Ident "f"
-      xVar = Var unit $ Qualified Nothing $ CoreFn.Ident "x"
+      abs1 = Abs emptyAnn (CoreFn.Ident "f") abs2
+      abs2 = Abs emptyAnn (CoreFn.Ident "x") app
+      app = App emptyAnn fVar xVar
+      fVar = Var emptyAnn $ Qualified Nothing $ CoreFn.Ident "f"
+      xVar = Var emptyAnn $ Qualified Nothing $ CoreFn.Ident "x"
 
       moduleComments = []
 
@@ -586,11 +557,7 @@ spec = describe "CodeGen" do
 
       moduleImports =
         [ ModuleImport
-            { ann: ssAnn $ SourceSpan
-                { spanName: unwrap modulePath
-                , spanStart: SourcePos { sourcePosLine: 1, sourcePosColumn: 1 }
-                , spanEnd: SourcePos { sourcePosLine: 3, sourcePosColumn: 8 }
-                }
+            { ann: emptyAnn
             , moduleName: ModuleName [ ProperName "Prim" ]
             }
         ]
@@ -600,7 +567,7 @@ spec = describe "CodeGen" do
       moduleForeign = []
 
       moduleDecls =
-        [ NonRec unit (CoreFn.Ident "hof") abs1
+        [ NonRec emptyAnn (CoreFn.Ident "hof") abs1
         ]
 
       mod = Module
@@ -678,7 +645,7 @@ spec = describe "CodeGen" do
   describe "Reserved" do
     it "Keywords" do
       let
-        booleanLiteral = CoreFn.Literal unit $ CoreFn.BooleanLiteral true
+        booleanLiteral = CoreFn.Literal emptyAnn $ CoreFn.BooleanLiteral true
 
         moduleComments = []
 
@@ -688,11 +655,7 @@ spec = describe "CodeGen" do
 
         moduleImports =
           [ ModuleImport
-              { ann: ssAnn $ SourceSpan
-                  { spanName: unwrap modulePath
-                  , spanStart: SourcePos { sourcePosLine: 1, sourcePosColumn: 1 }
-                  , spanEnd: SourcePos { sourcePosLine: 3, sourcePosColumn: 8 }
-                  }
+              { ann: emptyAnn
               , moduleName: ModuleName [ ProperName "Prim" ]
               }
           ]
@@ -702,7 +665,7 @@ spec = describe "CodeGen" do
         moduleForeign = []
 
         moduleDecls =
-          [ NonRec unit (CoreFn.Ident "class") booleanLiteral
+          [ NonRec emptyAnn (CoreFn.Ident "class") booleanLiteral
           ]
 
         mod = Module
@@ -743,7 +706,7 @@ spec = describe "CodeGen" do
 
     it "Characters" do
       let
-        booleanLiteral = CoreFn.Literal unit $ CoreFn.BooleanLiteral true
+        booleanLiteral = CoreFn.Literal emptyAnn $ CoreFn.BooleanLiteral true
 
         moduleComments = []
 
@@ -753,11 +716,7 @@ spec = describe "CodeGen" do
 
         moduleImports =
           [ ModuleImport
-              { ann: ssAnn $ SourceSpan
-                  { spanName: unwrap modulePath
-                  , spanStart: SourcePos { sourcePosLine: 1, sourcePosColumn: 1 }
-                  , spanEnd: SourcePos { sourcePosLine: 3, sourcePosColumn: 8 }
-                  }
+              { ann: emptyAnn
               , moduleName: ModuleName [ ProperName "Prim" ]
               }
           ]
@@ -767,7 +726,7 @@ spec = describe "CodeGen" do
         moduleForeign = []
 
         moduleDecls =
-          [ NonRec unit (CoreFn.Ident "foo'") booleanLiteral
+          [ NonRec emptyAnn (CoreFn.Ident "foo'") booleanLiteral
           ]
 
         mod = Module
@@ -806,7 +765,7 @@ spec = describe "CodeGen" do
       actualDecl `shouldEqual` Right expectedDecl
       actualString `shouldEqual` Right expectedString
 
-  describe "Typeclass" do
+  describe "Type class" do
     describe "definitions" do
       it "without inheritance" do
         let
@@ -929,16 +888,27 @@ spec = describe "CodeGen" do
               , moduleDecls
               }
 
-          -- typeclassProtocol =
+          typeClassMemberDeclArgs =
+            ( FunctionTypeArg (Just $ Ident "_") (Just $ Ident "v") Nil AnyType
+            : Nil
+            )
 
-          -- expectedDecl =
-          --   TopLevel
-          --     ( Declaration typeclassProtocol
-          --     , Declaration extensionFor
-          --     : Nil
-          --     )
+          typeClassMemberDecl = Method Nil (Ident "myShow") typeClassMemberDeclArgs AnyType
 
-          actualString = "FIXME"
+          typeClassProtocol = Protocol (AccessModifier Public : Nil) (Ident "Data_MyShow_MyShow") Nil
+            ( typeClassMemberDecl
+            : Nil
+            )
+
+          expectedDecl =
+            TopLevel
+              ( Declaration typeClassProtocol
+              -- , Declaration extensionFor
+              : Nil
+              )
+
+          actualDecl = moduleToSwift mod
+          actualString = prettyPrint <$> actualDecl
 
           expectedString = intercalate "\n"
             [ "public protocol Data_MyShow_MyShow {"
@@ -967,7 +937,8 @@ spec = describe "CodeGen" do
             , "}"
             ]
 
-        actualString `shouldEqual` expectedString
+        actualDecl `shouldEqual` Right expectedDecl
+        actualString `shouldEqual` Right expectedString
 
       -- it "with instances" do
       -- (Right (Module { moduleComments: [], moduleName: ["Data","MyShow"], modulePath: (FilePath ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs"), moduleImports: [(ModuleImport { ann: (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 1, sourcePosColumn: 1}), spanEnd: (SourcePos { sourcePosLine: 9, sourcePosColumn: 46})}), comments: [], type: Nothing, meta: Nothing}), moduleName: ["Data","MyShow"]}),(ModuleImport { ann: (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 1, sourcePosColumn: 1}), spanEnd: (SourcePos { sourcePosLine: 9, sourcePosColumn: 46})}), comments: [], type: Nothing, meta: Nothing}), moduleName: ["Prim"]})], moduleExports: [(Ident "MyShow"),(Ident "myShow"),(Ident "myShowString")], moduleForeign: [(Ident "myShowStringImpl")], moduleDecls: [(NonRec (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 3, sourcePosColumn: 1}), spanEnd: (SourcePos { sourcePosLine: 4, sourcePosColumn: 24})}), comments: [], type: Nothing, meta: Nothing}) (Ident "MyShow") (Abs (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 3, sourcePosColumn: 1}), spanEnd: (SourcePos { sourcePosLine: 4, sourcePosColumn: 24})}), comments: [], type: Nothing, meta: (Just IsTypeClassConstructor)}) (Ident "myShow") (Literal (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 3, sourcePosColumn: 1}), spanEnd: (SourcePos { sourcePosLine: 4, sourcePosColumn: 24})}), comments: [], type: Nothing, meta: Nothing}) (ObjectLiteral[(Tuple "myShow" (Var (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 3, sourcePosColumn: 1}), spanEnd: (SourcePos { sourcePosLine: 4, sourcePosColumn: 24})}), comments: [], type: Nothing, meta: Nothing}) (Qualified Nothing(Ident "myShow"))))])))),(NonRec (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 6, sourcePosColumn: 1}), spanEnd: (SourcePos { sourcePosLine: 6, sourcePosColumn: 39})}), comments: [], type: Nothing, meta: Nothing}) (Ident "myShowString") (App (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 6, sourcePosColumn: 1}), spanEnd: (SourcePos { sourcePosLine: 6, sourcePosColumn: 39})}), comments: [], type: Nothing, meta: Nothing}) (Var (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 6, sourcePosColumn: 1}), spanEnd: (SourcePos { sourcePosLine: 6, sourcePosColumn: 39})}), comments: [], type: Nothing, meta: (Just IsTypeClassConstructor)}) (Qualified (Just ["Data","MyShow"])(Ident "MyShow"))) (Var (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 7, sourcePosColumn: 12}), spanEnd: (SourcePos { sourcePosLine: 7, sourcePosColumn: 28})}), comments: [], type: Nothing, meta: (Just IsForeign)}) (Qualified (Just ["Data","MyShow"])(Ident "myShowStringImpl"))))),(NonRec (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 4, sourcePosColumn: 3}), spanEnd: (SourcePos { sourcePosLine: 4, sourcePosColumn: 24})}), comments: [], type: Nothing, meta: Nothing}) (Ident "myShow") (Abs (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 4, sourcePosColumn: 3}), spanEnd: (SourcePos { sourcePosLine: 4, sourcePosColumn: 24})}), comments: [], type: Nothing, meta: Nothing}) (Ident "dict") (Accessor (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 4, sourcePosColumn: 3}), spanEnd: (SourcePos { sourcePosLine: 4, sourcePosColumn: 24})}), comments: [], type: Nothing, meta: Nothing}) "myShow" (Var (Ann { sourceSpan: (SourceSpan { spanName: ".psc-package/pureswift/prelude/pureswift/src/Data/MyShow.purs", spanStart: (SourcePos { sourcePosLine: 4, sourcePosColumn: 3}), spanEnd: (SourcePos { sourcePosLine: 4, sourcePosColumn: 24})}), comments: [], type: Nothing, meta: Nothing}) (Qualified Nothing(Ident "dict"))))))]}))
