@@ -36,29 +36,34 @@ moduleToSwift (Module mod) = TopLevel <$> statements
 
   statements :: Either String (List Statement)
   statements = do
-    { yes, no } <- decls mod.moduleDecls
-    pure $ ( Declaration <$> yes ) <> ( Declaration (extension no) : Nil )
+    { yes, no } <- partitionDecls mod.moduleDecls
+    let
+      protocols = Declaration <$> yes
+      extensions = Declaration (extension no) : Nil
+    pure $ protocols <> extensions
 
-  decls :: Array (Bind Ann) -> Either String { yes :: List Decl, no :: List Decl }
-  decls bs = foldr step (Right { yes: Nil, no: Nil }) (List.fromFoldable bs)
+  partitionDecls :: Array (Bind Ann) -> Either String { yes :: List Decl, no :: List Decl }
+  partitionDecls = foldr step (Right { yes: Nil, no: Nil }) <<< List.fromFoldable
 
-  step
-    :: Bind Ann
-    -> Either String { yes :: List Decl, no :: List Decl }
-    -> Either String { yes :: List Decl, no :: List Decl }
-  step _ state@(Left _) = state
-  step b (Right state) = case b of
-    NonRec a i e
-      | Abs ann _ _ <- e, isTypeClassConstructor ann -> do
-          ident <- protocolIdentToSwift mod.moduleName i
-          let d = protocol ident Nil -- FIXME: protocol members
-          pure $ state { yes = d : state.yes }
-      | otherwise -> do
-          d <- bindingToSwift (Tuple (Tuple a i) e)
-          pure $ state { no = d : state.no  }
-    Rec bs -> do
-      ds <- traverse bindingToSwift $ List.fromFoldable bs
-      pure $ state { no = ds <> state.no  }
+    where
+
+    step
+      :: Bind Ann
+      -> Either String { yes :: List Decl, no :: List Decl }
+      -> Either String { yes :: List Decl, no :: List Decl }
+    step _ state@(Left _) = state
+    step b (Right state) = case b of
+      NonRec a i e
+        | Abs ann _ _ <- e, isTypeClassConstructor ann -> do
+            ident <- protocolIdentToSwift mod.moduleName i
+            let d = protocol ident Nil -- FIXME: protocol members
+            pure $ state { yes = d : state.yes }
+        | otherwise -> do
+            d <- bindingToSwift (Tuple (Tuple a i) e)
+            pure $ state { no = d : state.no  }
+      Rec bs -> do
+        ds <- traverse bindingToSwift $ List.fromFoldable bs
+        pure $ state { no = ds <> state.no  }
 
   protocolIdentToSwift :: ModuleName -> CoreFn.Ident -> Either String Ident
   protocolIdentToSwift (ModuleName mn) i = do
