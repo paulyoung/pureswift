@@ -1,4 +1,0 @@
-#!/usr/bin/env node
-
-// TODO: use bundled file
-require("./output/PSW/index.js").main();

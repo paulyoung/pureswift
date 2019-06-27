@@ -12,7 +12,7 @@ import PureSwift.PrettyPrinter (prettyPrint)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 
-spec :: forall r. Spec r Unit
+spec :: Spec Unit
 spec = describe "PrettyPrinter" do
   describe "constant" do
     describe "literal" do
@@ -810,7 +810,7 @@ spec = describe "PrettyPrinter" do
     :: forall a
      . String
     -> (List DeclMod -> Ident -> List Ident -> List a -> Decl)
-    ->  Spec r Unit
+    ->  Spec Unit
   testTypeInheritance name ctor =
     describe "type inheritance" do
       describe name do

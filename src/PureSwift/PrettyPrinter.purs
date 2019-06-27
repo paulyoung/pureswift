@@ -9,7 +9,7 @@ import Data.Foldable (intercalate)
 import Data.List (List(..))
 import Data.Map as Map
 import Data.Maybe (Maybe(Just, Nothing), maybe, maybe')
-import Data.String as String
+import Data.String.CodeUnits as CodeUnits
 import Data.Tuple (Tuple(..))
 import Prettier.Printer (DOC, line, nest, nil, pretty, spread, stack, text)
 import PureSwift.AST (AccessMod(..), Attribute(..), Decl(..), DeclMod(..), Exp(..), FunctionTypeArg(..), Ident(..), Lit(..), ProtocolMemberDecl(..), Statement(..), Type(..))
@@ -19,7 +19,7 @@ import PureSwift.AST (AccessMod(..), Attribute(..), Decl(..), DeclMod(..), Exp(.
 -- | `pretty`, except much less expensive. `pretty 0` is known to hang on
 -- | non-trivial input.
 group :: DOC -> DOC
-group = id
+group = identity
 
 bracket' :: Int -> String -> DOC -> String -> DOC
 bracket' i l x r = group $ text l <> nest i (line <> x) <> line <> text r
@@ -116,12 +116,12 @@ ppExp (Subscript e1 e2) = ppExp e1 <> text "[" <> ppExp e2 <> text "]"
 ppLit :: Lit -> DOC
 ppLit (IntLit i) = text $ show i
 ppLit (FloatLit f) = text $ show f
-ppLit (CharLit c) = text $ show $ String.singleton c
+ppLit (CharLit c) = text $ show $ CodeUnits.singleton c
 ppLit (StringLit s) = text $ show s
 ppLit (BooleanLit b) = text $ show b
 ppLit (ArrayLit es) = ppList "[" "]" es
 ppLit (DictLit m) =
-  case Map.toAscUnfoldable m of
+  case Map.toUnfoldable m of
     Nil -> text "[:]"
     (Cons t Nil) -> text "[" <> ppDictItem t <> text "]"
     ts -> text "[" <> bracket "" (ppDictItems ts) "" <> text "]"

@@ -24,7 +24,7 @@ import Data.List as List
 import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (unwrap)
-import Data.String (singleton, toCharArray)
+import Data.String.CodeUnits as CodeUnits
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import PureSwift.AST (AccessMod(..), Attribute(..), Decl(..), DeclMod(..), Exp(..), FunctionTypeArg(..), Ident(..), Lit(..), ProtocolMemberDecl, Statement(..), Type(..))
@@ -102,7 +102,7 @@ moduleToSwift (Module mod) = TopLevel <$> statements
     _ -> Nothing
 
   expToType :: Exp -> Maybe Type
-  expToType = expToType' id
+  expToType = expToType' identity
 
   litToType :: Lit -> Maybe Type
   litToType = case _ of
@@ -133,12 +133,12 @@ moduleToSwift (Module mod) = TopLevel <$> statements
   properToSwift :: String -> String
   properToSwift name
     | nameIsSwiftReserved name = "`" <> name <> "`"
-    | otherwise = foldMap identCharToString $ toCharArray name
+    | otherwise = foldMap identCharToString $ CodeUnits.toCharArray name
 
   -- | Attempts to find a human-readable name for a symbol, if none has been
   -- | specified returns the ordinal value.
   identCharToString :: Char -> String
-  identCharToString c | isAlphaNum c = singleton c
+  identCharToString c | isAlphaNum c = CodeUnits.singleton c
   identCharToString '_' = "_"
   identCharToString '.' = "$dot"
   identCharToString '$' = "$dollar"

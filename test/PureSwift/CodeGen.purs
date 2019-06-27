@@ -30,7 +30,7 @@ emptyAnn = ssAnn $ SourceSpan
   , spanEnd: SourcePos { sourcePosLine: 0, sourcePosColumn: 0 }
   }
 
-spec :: forall r. Spec r Unit
+spec :: Spec Unit
 spec = describe "CodeGen" do
   it "Exports" do
     let
